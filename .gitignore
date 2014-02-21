@@ -1,0 +1,9 @@
+/Build
+/MANIFEST.bak
+/MYMETA.json
+/MYMETA.yml
+/_build/
+/blib/
+/cover_db
+/lib/Authen/Kerberos/Kadmin.c
+*.o

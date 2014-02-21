@@ -1,0 +1,18 @@
+Build.PL
+lib/Authen/Kerberos/Exception.pm
+lib/Authen/Kerberos/Kadmin.pm
+lib/Authen/Kerberos/Kadmin.xs
+MANIFEST			This list of files
+MANIFEST.SKIP
+t/data/perl.conf
+t/docs/pod-coverage.t
+t/docs/pod-spelling.t
+t/docs/pod.t
+t/docs/synopsis.t
+t/kadmin/basic.t
+t/misc/exception.t
+t/style/coverage.t
+t/style/critic.t
+t/style/minimum-version.t
+t/style/strict.t
+typemap
