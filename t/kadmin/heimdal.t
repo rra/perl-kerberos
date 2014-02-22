@@ -75,5 +75,8 @@ $kadmin = Authen::Kerberos::Kadmin->new(
 );
 ok(!eval { $kadmin->chpass('test@TEST.EXAMPLE.COM', 'some password') },
     'Password fails with bogus database');
-like($@, qr{ \A kadm5_chpass_principal: [ ] opening .* }xms,
-    '...with correct error');
+like(
+    $@,
+    qr{ \A kadm5_chpass_principal: [ ] opening .* }xms,
+    '...with correct error'
+);
