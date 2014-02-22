@@ -1,0 +1,8 @@
+The heimdal.db file here was created with the following commands:
+
+    kadmin -c kdc.conf -l init TEST.EXAMPLE.COM
+    kadmin -c kdc.conf -l add --random-password test
+
+and accepting all of the defaults.  If recreated, the contents will be
+different, since different random keys will be chosen, but the files
+should serve equally well for test purposes.
