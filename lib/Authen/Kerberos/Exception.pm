@@ -70,11 +70,7 @@ sub to_string {
 
     # Construct the verbose message, trying to follow the normal Perl text
     # exception format.
-    my $result = q{};
-    if (defined($function)) {
-        $result .= "$function: ";
-    }
-    $result .= $message;
+    my $result = defined($function) ? "$function: $message" : $message;
     if (defined $line) {
         $result .= " at $file line $line";
     }
