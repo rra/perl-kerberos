@@ -40,6 +40,7 @@ use warnings;
 
 use base qw(DynaLoader);
 
+use Authen::Kerberos::Exception;
 use Exporter qw(import);
 
 our $VERSION;
@@ -106,6 +107,20 @@ Supported options are:
 
 =over 4
 
+=item config_file
+
+A Kerberos configuration file to use by preference.  This configuration
+file will not replace the default system Kerberos configuration, but its
+settings will override other settings.  It may be needed to configure such
+things as password quality checking.
+
+=item db_name
+
+The name of or path to the Kerberos KDC database.  This option is only
+used if the C<server> option is set to true.  If C<server> is true and
+this option is not set, the compile-time or system-configured default will
+be used.
+
 =item password_quality
 
 If set to a true value, the password quality check configuration will be
@@ -125,6 +140,13 @@ If set to a true value, use the server kadmin API instead of the client
 API.  This mode opens the Kerberos KDC database directly to make changes
 instead of using the kadmin network protocol.  Currently, this option must
 be present and set to a true value.
+
+=item stash_file
+
+The path to the stash file containing the master key for the Kerberos KDC
+database.  This option is only used if the C<server> option is set to
+true.  If C<server> is true and this option is not set, the compile-time
+or system-configured default will be used.
 
 =back
 

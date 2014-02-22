@@ -30,6 +30,9 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+#include <stdlib.h>
+#include <string.h>
+
 #include <EXTERN.h>
 #include <perl.h>
 #include <XSUB.h>
@@ -69,17 +72,17 @@ kadmin_croak(krb5_context ctx, krb5_error_code code, const char *function,
     const char *message;
 
     hv = newHV();
-    (void) hv_store(hv, "code", 6, newSViv(code), 0);
+    (void) hv_stores(hv, "code", newSViv(code));
     message = krb5_get_error_message(ctx, code);
-    (void) hv_store(hv, "message", 7, newSVpv(message, 0), 0);
+    (void) hv_stores(hv, "message", newSVpv(message, 0));
     krb5_free_error_message(ctx, message);
     if (destroy)
         krb5_free_context(ctx);
     if (function != NULL)
-        (void) hv_store(hv, "function", 6, newSVpv(function, 0), 0);
+        (void) hv_stores(hv, "function", newSVpv(function, 0));
     if (CopLINE(PL_curcop)) {
-        (void) hv_store(hv, "line", 4, newSViv(CopLINE(PL_curcop)), 0);
-        (void) hv_store(hv, "file", 4, newSVpv(CopFILE(PL_curcop), 0), 0);
+        (void) hv_stores(hv, "line", newSViv(CopLINE(PL_curcop)));
+        (void) hv_stores(hv, "file", newSVpv(CopFILE(PL_curcop), 0));
     }
     rv = newRV_noinc((SV *) hv);
     sv_bless(rv, gv_stashpv("Authen::Kerberos::Exception", TRUE));
@@ -107,6 +110,8 @@ new(class, args)
     void *handle;
     Authen__Kerberos__Kadmin self;
     bool quality = FALSE;
+    const char *config_file;
+    char **files;
   CODE:
 {
     code = krb5_init_context(&ctx);
@@ -116,21 +121,49 @@ new(class, args)
     /* Parse the arguments to the function, if any. */
     memset(&params, 0, sizeof(params));
     if (args != NULL) {
-        value = hv_fetchs(args, "realm", 0);
-        if (value != NULL) {
-            params.realm = SvPV_nolen(*value);
-            params.mask = KADM5_CONFIG_REALM;
-        }
         value = hv_fetchs(args, "server", 0);
         if (value == NULL || !SvTRUE(*value))
             croak("server mode required in Authen::Kerberos::Kadmin::new");
+
+        /* The config file has to be set in the Kerberos context. */
+        value = hv_fetchs(args, "config_file", 0);
+        if (value != NULL) {
+            config_file = SvPV_nolen(*value);
+            code = krb5_prepend_config_files_default(config_file, &files);
+            if (code != 0)
+                kadmin_croak(ctx, code, "krb5_prepend_config_files_default",
+                             TRUE);
+            code = krb5_set_config_files(ctx, files);
+            krb5_free_config_files(files);
+            if (code != 0)
+                kadmin_croak(ctx, code, "krb5_set_config_files", TRUE);
+        }
+
+        /* Set configuration parameters used by kadm5_init. */
+        value = hv_fetchs(args, "db_name", 0);
+        if (value != NULL) {
+            params.dbname = SvPV_nolen(*value);
+            params.mask |= KADM5_CONFIG_DBNAME;
+        }
+        value = hv_fetchs(args, "realm", 0);
+        if (value != NULL) {
+            params.realm = SvPV_nolen(*value);
+            params.mask |= KADM5_CONFIG_REALM;
+        }
+        value = hv_fetchs(args, "stash_file", 0);
+        if (value != NULL) {
+            params.stash_file = SvPV_nolen(*value);
+            params.mask |= KADM5_CONFIG_STASH_FILE;
+        }
+
+        /* Password quality we have to configure later. */
         value = hv_fetchs(args, "password_quality", 0);
         if (value != NULL && SvTRUE(*value))
             quality = TRUE;
     }
 
     /* Create the kadmin server handle. */
-    code = kadm5_init_with_password_ctx(ctx, "kadmin/admin", NULL, NULL,
+    code = kadm5_init_with_password_ctx(ctx, KADM5_ADMIN_SERVICE, NULL, NULL,
                                         &params,  KADM5_STRUCT_VERSION,
                                         KADM5_API_VERSION_2, &handle);
     if (code != 0)
