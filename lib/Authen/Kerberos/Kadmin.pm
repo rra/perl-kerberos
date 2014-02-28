@@ -154,13 +154,18 @@ or system-configured default will be used.
 
 =head1 INSTANCE METHODS
 
-All instance methods throw exceptions on any error.
+All instance methods throw Authen::Kerberos::Exception exceptions on any
+error.
 
 =over 4
 
 =item chpass(PRINCIPAL, PASSWORD)
 
 Change the Kerberos password for PRINCIPAL to PASSWORD.
+
+If password quality checking is enabled via the C<password_quality>
+parameter to the constructor, this method will fail and throw an exception
+on any password quality check failure.
 
 =back
 
@@ -169,5 +174,9 @@ Change the Kerberos password for PRINCIPAL to PASSWORD.
 =head1 AUTHOR
 
 Russ Allbery <eagle@eyrie.org>
+
+=head1 SEE ALSO
+
+L<Authen::Kerberos::Exception>
 
 =cut

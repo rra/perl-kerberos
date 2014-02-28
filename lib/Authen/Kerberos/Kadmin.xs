@@ -39,14 +39,17 @@
 
 #include <krb5.h>
 #include <kadm5/admin.h>
+#include <kadm5/kadm5_err.h>
 
 /*
  * Define a struct that wraps the kadmin API handle so that we can include
- * some other data structures that we need to use.
+ * some other data structures and configuration parameters that we need to
+ * use.
  */
 typedef struct {
     void *handle;
     krb5_context ctx;
+    bool quality;
 } *Authen__Kerberos__Kadmin;
 
 /* Used to check that an object argument to a function is not NULL. */
@@ -182,6 +185,7 @@ new(class, args)
     }
     self->ctx = ctx;
     self->handle = handle;
+    self->quality = quality;
     RETVAL = self;
 }
   OUTPUT:
@@ -209,11 +213,30 @@ chpass(self, principal, password)
   PREINIT:
     krb5_error_code code;
     krb5_principal princ = NULL;
+    krb5_data pwd_data;
+    const char *reason;
   CODE:
 {
     code = krb5_parse_name(self->ctx, principal, &princ);
     if (code != 0)
         kadmin_croak(self->ctx, code, "krb5_parse_name", FALSE);
+
+    /*
+     * If configured to do quality checking, we need to do that manually,
+     * since the server-side kadmin libraries never check quality.
+     */
+    if (self->quality) {
+        pwd_data.data = (char *) password;
+        pwd_data.length = strlen(password);
+        reason = kadm5_check_password_quality(self->ctx, princ, &pwd_data);
+        if (reason != NULL) {
+            krb5_set_error_message(self->ctx, KADM5_PASS_Q_DICT, "%s", reason);
+            kadmin_croak(self->ctx, KADM5_PASS_Q_DICT,
+                         "kadm5_check_password_quality", FALSE);
+        }
+    }
+
+    /* Do the actual password change. */
     code = kadm5_chpass_principal(self->handle, princ, password);
     krb5_free_principal(self->ctx, princ);
     if (code != 0)
