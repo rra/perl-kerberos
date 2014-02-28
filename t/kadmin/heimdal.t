@@ -55,9 +55,9 @@ local $ENV{KRB5_CONFIG} = 't/data/kdb/kdc.conf';
 # Create the Authen::Kerberos::Kadmin object.
 my $kadmin = Authen::Kerberos::Kadmin->new(
     {
-        realm   => 'TEST.EXAMPLE.COM',
-        server  => 1,
         password_quality => 1,
+        realm            => 'TEST.EXAMPLE.COM',
+        server           => 1,
     }
 );
 isa_ok($kadmin, 'Authen::Kerberos::Kadmin');
@@ -91,8 +91,8 @@ is(
 # The same should fail if we attempt it with an unknown database.
 $kadmin = Authen::Kerberos::Kadmin->new(
     {
-        realm   => 'BOGUS.EXAMPLE.COM',
-        server  => 1,
+        realm  => 'BOGUS.EXAMPLE.COM',
+        server => 1,
     }
 );
 ok(!eval { $kadmin->chpass('test@TEST.EXAMPLE.COM', 'some password') },
