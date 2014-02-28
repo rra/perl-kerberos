@@ -1,1 +1,2 @@
 0001-Avoid-pkg-config-for-XS-flags.patch
+0002-Specify-test-databases-in-kdc.conf.patch
