@@ -49,6 +49,10 @@ END {
     rmdir('t/tmp');
 }
 
+# Force use of our local kdc.conf, since kadmin library initialization wants
+# to know the host to realm mapping for some reason.
+local $ENV{KRB5_CONFIG} = 't/data/kdb/kdc.conf';
+
 # Create the Authen::Kerberos::Kadmin object.
 my $kadmin = Authen::Kerberos::Kadmin->new(
     {
