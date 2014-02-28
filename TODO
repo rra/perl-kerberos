@@ -1,0 +1,5 @@
+                       Authen::Kerberos To-Do List
+
+ * Figure out a good way of exposing the Kerberos error codes.  After this
+   has been done, document the error codes in chpass exceptions that
+   correspond to password quality checking failures.
