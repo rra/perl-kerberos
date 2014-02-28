@@ -1,5 +1,5 @@
-libauthen-kerberos-perl (0.1-1) unstable; urgency=low
+libauthen-kerberos-perl (0.01-1) unstable; urgency=low
 
   * Initial internal release.  Only server-side password change supported.
 
- -- Russ Allbery <rra@debian.org>  Thu, 27 Feb 2014 20:12:19 -0800
+ -- Russ Allbery <rra@debian.org>  Thu, 27 Feb 2014 21:07:23 -0800
