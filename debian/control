@@ -1,0 +1,16 @@
+Source: libauthen-kerberos-perl
+Section: perl
+Priority: optional
+Build-Depends: debhelper (>= 9), heimdal-dev, libmodule-build-perl,
+ libtest-minimumversion-perl, libtest-pod-perl, libtest-pod-coverage-perl,
+ libtest-strict-perl, libtest-synopsis-perl
+Maintainer: Russ Allbery <rra@debian.org>
+Standards-Version: 3.9.5
+
+Package: libauthen-kerberos-perl
+Architecture: any
+Depends: ${perl:Depends}, ${shlibs:Depends}, ${misc:Depends}
+Description: Perl bindings for Kerberos libraries
+ Authen::Kerberos will eventually provide object-oriented Perl bindings
+ for the Kerberos libraries.  Currently, it only provides bindings for the
+ Heimdal kadmin library and only supports server-side password change.
