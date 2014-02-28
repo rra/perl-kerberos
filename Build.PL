@@ -29,7 +29,13 @@ use autodie;
 use strict;
 use warnings;
 
+use IPC::System::Simple qw(capturex);
 use Module::Build;
+
+# Get the compiler and linker flags for Heimdal.  Currently, a new enough
+# Heimdal to support pkg-config is required.
+my $compiler_flags = capturex('pkg-config', '--cflags', 'heimdal-kadm-server');
+my $linker_flags   = capturex('pkg-config', '--libs',   'heimdal-kadm-server');
 
 # Basic package configuration.
 my $build = Module::Build->new(
@@ -41,13 +47,15 @@ my $build = Module::Build->new(
     recursive_test_files => 1,
 
     # XS configuration.
-    extra_linker_flags => ['-lkadm5srv'],
+    extra_compiler_flags => [split(q{ }, $compiler_flags)],
+    extra_linker_flags   => [split(q{ }, $linker_flags)],
 
     # Other package relationships.
     configure_requires => {
-        'Module::Build' => '0.28',
-        autodie         => 0,
-        perl            => '5.010',
+        'IPC::System::Simple' => 0,
+        'Module::Build'       => '0.28',
+        autodie               => 0,
+        perl                  => '5.010',
     },
     requires => {
         autodie => 0,
