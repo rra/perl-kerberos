@@ -1,0 +1,31 @@
+---
+abstract: 'Perl bindings for Kerberos libraries'
+author:
+  - 'Russ Allbery <eagle@eyrie.org>'
+build_requires:
+  ExtUtils::CBuilder: '0'
+configure_requires:
+  IPC::System::Simple: '0'
+  Module::Build: '0.28'
+  autodie: '0'
+  perl: '5.010'
+dynamic_config: 1
+generated_by: 'Module::Build version 0.4204, CPAN::Meta::Converter version 2.133380'
+license: mit
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: '1.4'
+name: Authen-Kerberos
+provides:
+  Authen::Kerberos::Exception:
+    file: lib/Authen/Kerberos/Exception.pm
+    version: '0.01'
+  Authen::Kerberos::Kadmin:
+    file: lib/Authen/Kerberos/Kadmin.pm
+    version: '0.01'
+requires:
+  autodie: '0'
+  perl: '5.010'
+resources:
+  license: http://www.opensource.org/licenses/mit-license.php
+version: '0.01'
