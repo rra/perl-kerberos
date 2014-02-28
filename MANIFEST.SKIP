@@ -41,3 +41,6 @@
 
 # Avoid archives of this distribution
 \bAuthen-Kerberos-[\d\.\_]+
+
+# Ignore Debian packaging files.
+^debian/
