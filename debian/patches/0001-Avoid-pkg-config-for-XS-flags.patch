@@ -1,0 +1,26 @@
+From: Russ Allbery <eagle@eyrie.org>
+Date: Thu, 27 Feb 2014 22:36:21 -0800
+Subject: Avoid pkg-config for XS flags
+
+To allow for backporting to older versions of Debian without the
+new pkg-config files for libkadm5srv, just hard-code the libraries
+for now.
+---
+ Build.PL | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/Build.PL b/Build.PL
+index f2f6157..763c960 100644
+--- a/Build.PL
++++ b/Build.PL
+@@ -34,8 +34,8 @@ use Module::Build;
+ 
+ # Get the compiler and linker flags for Heimdal.  Currently, a new enough
+ # Heimdal to support pkg-config is required.
+-my $compiler_flags = capturex('pkg-config', '--cflags', 'heimdal-kadm-server');
+-my $linker_flags   = capturex('pkg-config', '--libs',   'heimdal-kadm-server');
++my $compiler_flags = q{};
++my $linker_flags   = '-lkadm5srv';
+ 
+ # Basic package configuration.
+ my $build = Module::Build->new(
