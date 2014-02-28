@@ -16,6 +16,8 @@ t/docs/pod-spelling.t
 t/docs/pod.t
 t/docs/synopsis.t
 t/kadmin/heimdal.t
+t/lib/Test/RRA.pm
+t/lib/Test/RRA/Config.pm
 t/misc/exception.t
 t/style/coverage.t
 t/style/critic.t
