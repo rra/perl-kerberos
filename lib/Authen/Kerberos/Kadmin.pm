@@ -121,6 +121,10 @@ used if the C<server> option is set to true.  If C<server> is true and
 this option is not set, the compile-time or system-configured default will
 be used.
 
+Be warned that many versions of Heimdal completely ignore this parameter
+and only use database paths configured in F<krb5.conf> or a file added via
+C<config_file>.
+
 =item password_quality
 
 If set to a true value, the password quality check configuration will be
@@ -147,6 +151,10 @@ The path to the stash file containing the master key for the Kerberos KDC
 database.  This option is only used if the C<server> option is set to
 true.  If C<server> is true and this option is not set, the compile-time
 or system-configured default will be used.
+
+Be warned that many versions of Heimdal completely ignore this parameter
+and only use stash file paths configured in F<krb5.conf> or a file added
+via C<config_file>.
 
 =back
 
