@@ -7,6 +7,7 @@ MANIFEST			This list of files
 MANIFEST.SKIP
 t/data/kdb/heimdal.db
 t/data/kdb/kdc.conf
+t/data/kdb/password-quality
 t/data/kdb/README
 t/data/perl.conf
 t/data/perlcriticrc
@@ -23,6 +24,7 @@ t/style/coverage.t
 t/style/critic.t
 t/style/minimum-version.t
 t/style/strict.t
+TODO
 typemap
 META.yml
 META.json

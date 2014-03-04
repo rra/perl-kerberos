@@ -4,7 +4,7 @@
       "Russ Allbery <eagle@eyrie.org>"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "Module::Build version 0.4204",
+   "generated_by" : "Module::Build version 0.4205",
    "license" : [
       "mit"
    ],
@@ -37,11 +37,11 @@
    "provides" : {
       "Authen::Kerberos::Exception" : {
          "file" : "lib/Authen/Kerberos/Exception.pm",
-         "version" : "0.01"
+         "version" : "0.02"
       },
       "Authen::Kerberos::Kadmin" : {
          "file" : "lib/Authen/Kerberos/Kadmin.pm",
-         "version" : "0.01"
+         "version" : "0.02"
       }
    },
    "release_status" : "stable",
@@ -50,5 +50,5 @@
          "http://www.opensource.org/licenses/mit-license.php"
       ]
    },
-   "version" : "0.01"
+   "version" : "0.02"
 }

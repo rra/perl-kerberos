@@ -31,7 +31,7 @@ use warnings;
 
 use File::Copy qw(copy);
 
-use Test::More tests => 6;
+use Test::More tests => 10;
 
 BEGIN {
     use_ok('Authen::Kerberos::Kadmin');
@@ -49,16 +49,15 @@ END {
     rmdir('t/tmp');
 }
 
-# Force use of our local kdc.conf, since kadmin library initialization wants
-# to know the host to realm mapping for some reason.
+# Force use of our local kdc.conf.
 local $ENV{KRB5_CONFIG} = 't/data/kdb/kdc.conf';
 
 # Create the Authen::Kerberos::Kadmin object.
 my $kadmin = Authen::Kerberos::Kadmin->new(
     {
-        db_name => 'db:./t/tmp/heimdal',
-        realm   => 'TEST.EXAMPLE.COM',
-        server  => 1,
+        password_quality => 1,
+        realm            => 'TEST.EXAMPLE.COM',
+        server           => 1,
     }
 );
 isa_ok($kadmin, 'Authen::Kerberos::Kadmin');
@@ -69,12 +68,31 @@ ok(eval { $kadmin->chpass('test@TEST.EXAMPLE.COM', 'some password') },
     'Password change is successful');
 is($@, q{}, '...with no exception');
 
+# Test password change to something that should be rejected by the password
+# quality check.
+ok(
+    !eval { $kadmin->chpass('test@TEST.EXAMPLE.COM', 'password') },
+    'Password change to bad-quality password rejected'
+);
+my $error = $@;
+isa_ok($error, 'Authen::Kerberos::Exception', 'Thrown exception');
+my ($function, $message);
+if (ref($error) && $error->isa('Authen::Kerberos::Exception')) {
+    $function = $error->function;
+    $message  = $error->message;
+}
+is($function, 'kadm5_check_password_quality', '...with correct function');
+is(
+    $message,
+    'External password quality program failed: weak password',
+    '...and correct message'
+);
+
 # The same should fail if we attempt it with an unknown database.
 $kadmin = Authen::Kerberos::Kadmin->new(
     {
-        db_name => 'db:./t/tmp/bogus',
-        realm   => 'TEST.EXAMPLE.COM',
-        server  => 1,
+        realm  => 'BOGUS.EXAMPLE.COM',
+        server => 1,
     }
 );
 ok(!eval { $kadmin->chpass('test@TEST.EXAMPLE.COM', 'some password') },
