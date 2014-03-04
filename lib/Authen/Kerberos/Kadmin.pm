@@ -47,7 +47,7 @@ our $VERSION;
 
 # Set $VERSION in a BEGIN block for robustness.
 BEGIN {
-    $VERSION = '0.01';
+    $VERSION = '0.02';
 }
 
 # Load the binary module.
@@ -121,6 +121,10 @@ used if the C<server> option is set to true.  If C<server> is true and
 this option is not set, the compile-time or system-configured default will
 be used.
 
+Be warned that many versions of Heimdal completely ignore this parameter
+and only use database paths configured in F<krb5.conf> or a file added via
+C<config_file>.
+
 =item password_quality
 
 If set to a true value, the password quality check configuration will be
@@ -148,19 +152,28 @@ database.  This option is only used if the C<server> option is set to
 true.  If C<server> is true and this option is not set, the compile-time
 or system-configured default will be used.
 
+Be warned that many versions of Heimdal completely ignore this parameter
+and only use stash file paths configured in F<krb5.conf> or a file added
+via C<config_file>.
+
 =back
 
 =back
 
 =head1 INSTANCE METHODS
 
-All instance methods throw exceptions on any error.
+All instance methods throw Authen::Kerberos::Exception exceptions on any
+error.
 
 =over 4
 
 =item chpass(PRINCIPAL, PASSWORD)
 
 Change the Kerberos password for PRINCIPAL to PASSWORD.
+
+If password quality checking is enabled via the C<password_quality>
+parameter to the constructor, this method will fail and throw an exception
+on any password quality check failure.
 
 =back
 
@@ -169,5 +182,9 @@ Change the Kerberos password for PRINCIPAL to PASSWORD.
 =head1 AUTHOR
 
 Russ Allbery <eagle@eyrie.org>
+
+=head1 SEE ALSO
+
+L<Authen::Kerberos::Exception>
 
 =cut

@@ -42,7 +42,7 @@ my $build = Module::Build->new(
     module_name          => 'Authen::Kerberos',
     dist_abstract        => 'Perl bindings for Kerberos libraries',
     dist_author          => 'Russ Allbery <eagle@eyrie.org>',
-    dist_version         => '0.01',
+    dist_version         => '0.02',
     license              => 'mit',
     recursive_test_files => 1,
 
