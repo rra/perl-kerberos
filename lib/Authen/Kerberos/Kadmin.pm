@@ -177,8 +177,6 @@ on any password quality check failure.
 
 =back
 
-=cut
-
 =head1 AUTHOR
 
 Russ Allbery <eagle@eyrie.org>
