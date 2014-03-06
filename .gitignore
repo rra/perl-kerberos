@@ -5,5 +5,6 @@
 /_build/
 /blib/
 /cover_db
+/lib/Authen/Kerberos.c
 /lib/Authen/Kerberos/Kadmin.c
 *.o

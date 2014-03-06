@@ -1,4 +1,4 @@
-# Typemap file for the Perl bindings to the Kerberos library.
+# Typemap file for the Perl bindings to the Kerberos library.  -*- conf -*-
 #
 # Written by Russ Allbery <eagle@eyrie.org>
 # Copyright 2014
@@ -24,6 +24,7 @@
 
 TYPEMAP
 
+Authen::Kerberos                T_PTROBJ_NU
 Authen::Kerberos::Kadmin        T_PTROBJ_NU
 
 INPUT
