@@ -47,6 +47,7 @@ my $build = Module::Build->new(
     recursive_test_files => 1,
 
     # XS configuration.
+    c_source             => 'util',
     extra_compiler_flags => [split(q{ }, $compiler_flags)],
     extra_linker_flags   => [split(q{ }, $linker_flags)],
 

@@ -61,39 +61,6 @@ typedef struct {
 #define CROAK_NULL_SELF(o, t, f) CROAK_NULL((o), t, t "::" f)
 
 
-/*
- * Turn a Kerberos error into a Perl exception.  If the destroy argument is
- * true, free the Kerberos context after setting up the exception.  This is
- * used in cases where we're croaking inside the constructor.
- */
-static void __attribute__((__noreturn__))
-kadmin_croak(krb5_context ctx, krb5_error_code code, const char *function,
-             bool destroy)
-{
-    HV *hv;
-    SV *rv;
-    const char *message;
-
-    hv = newHV();
-    (void) hv_stores(hv, "code", newSViv(code));
-    message = krb5_get_error_message(ctx, code);
-    (void) hv_stores(hv, "message", newSVpv(message, 0));
-    krb5_free_error_message(ctx, message);
-    if (destroy)
-        krb5_free_context(ctx);
-    if (function != NULL)
-        (void) hv_stores(hv, "function", newSVpv(function, 0));
-    if (CopLINE(PL_curcop)) {
-        (void) hv_stores(hv, "line", newSViv(CopLINE(PL_curcop)));
-        (void) hv_stores(hv, "file", newSVpv(CopFILE(PL_curcop), 0));
-    }
-    rv = newRV_noinc((SV *) hv);
-    sv_bless(rv, gv_stashpv("Authen::Kerberos::Exception", TRUE));
-    sv_setsv(get_sv("@", TRUE), sv_2mortal(rv));
-    croak(Nullch);
-}
-
-
 /* XS code below this point. */
 
 MODULE = Authen::Kerberos::Kadmin       PACKAGE = Authen::Kerberos::Kadmin
@@ -119,7 +86,7 @@ new(class, args)
 {
     code = krb5_init_context(&ctx);
     if (code != 0)
-        kadmin_croak(NULL, code, "krb5_init_context", FALSE);
+        krb5_croak(NULL, code, "krb5_init_context", FALSE);
 
     /* Parse the arguments to the function, if any. */
     memset(&params, 0, sizeof(params));
@@ -134,12 +101,12 @@ new(class, args)
             config_file = SvPV_nolen(*value);
             code = krb5_prepend_config_files_default(config_file, &files);
             if (code != 0)
-                kadmin_croak(ctx, code, "krb5_prepend_config_files_default",
-                             TRUE);
+                krb5_croak(ctx, code, "krb5_prepend_config_files_default",
+                           TRUE);
             code = krb5_set_config_files(ctx, files);
             krb5_free_config_files(files);
             if (code != 0)
-                kadmin_croak(ctx, code, "krb5_set_config_files", TRUE);
+                krb5_croak(ctx, code, "krb5_set_config_files", TRUE);
         }
 
         /* Set configuration parameters used by kadm5_init. */
@@ -170,7 +137,7 @@ new(class, args)
                                         &params,  KADM5_STRUCT_VERSION,
                                         KADM5_API_VERSION_2, &handle);
     if (code != 0)
-        kadmin_croak(ctx, code, "kadm5_init_with_password_ctx", TRUE);
+        krb5_croak(ctx, code, "kadm5_init_with_password_ctx", TRUE);
 
     /* Set up password quality checking if desired. */
     if (quality)
@@ -219,7 +186,7 @@ chpass(self, principal, password)
 {
     code = krb5_parse_name(self->ctx, principal, &princ);
     if (code != 0)
-        kadmin_croak(self->ctx, code, "krb5_parse_name", FALSE);
+        krb5_croak(self->ctx, code, "krb5_parse_name", FALSE);
 
     /*
      * If configured to do quality checking, we need to do that manually,
@@ -231,7 +198,7 @@ chpass(self, principal, password)
         reason = kadm5_check_password_quality(self->ctx, princ, &pwd_data);
         if (reason != NULL) {
             krb5_set_error_message(self->ctx, KADM5_PASS_Q_DICT, "%s", reason);
-            kadmin_croak(self->ctx, KADM5_PASS_Q_DICT,
+            krb5_croak(self->ctx, KADM5_PASS_Q_DICT,
                          "kadm5_check_password_quality", FALSE);
         }
     }
@@ -240,6 +207,6 @@ chpass(self, principal, password)
     code = kadm5_chpass_principal(self->handle, princ, password);
     krb5_free_principal(self->ctx, princ);
     if (code != 0)
-        kadmin_croak(self->ctx, code, "kadm5_chpass_principal", FALSE);
+        krb5_croak(self->ctx, code, "kadm5_chpass_principal", FALSE);
     XSRETURN_YES;
 }
