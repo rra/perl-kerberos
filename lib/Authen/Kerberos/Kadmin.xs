@@ -52,14 +52,6 @@ typedef struct {
     bool quality;
 } *Authen__Kerberos__Kadmin;
 
-/* Used to check that an object argument to a function is not NULL. */
-#define CROAK_NULL(o, t, f)                     \
-    do {                                        \
-        if ((o) == NULL)                        \
-            croak(t " object is undef in " f);  \
-    } while (0);
-#define CROAK_NULL_SELF(o, t, f) CROAK_NULL((o), t, t "::" f)
-
 
 /* XS code below this point. */
 

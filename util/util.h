@@ -35,6 +35,14 @@
 #include <krb5.h>               /* krb5_contxt, krb5_error_code */
 #include <perl.h>               /* bool */
 
+/* Used to check that an object argument to a function is not NULL. */
+#define CROAK_NULL(o, t, f)                     \
+    do {                                        \
+        if ((o) == NULL)                        \
+            croak(t " object is undef in " f);  \
+    } while (0);
+#define CROAK_NULL_SELF(o, t, f) CROAK_NULL((o), t, t "::" f)
+
 BEGIN_DECLS
 
 /* Default to a hidden visibility for all util functions. */
