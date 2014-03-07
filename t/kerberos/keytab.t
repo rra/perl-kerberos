@@ -40,14 +40,14 @@ BEGIN {
 # be changed if the test keytab is regenerated.
 my $TEST_KVNO      = 3;
 my $TEST_PRINCIPAL = 'service/fake-keytab@test-k5.stanford.edu';
-my $TEST_TIMESTAMP = 1200690955;
+my $TEST_TIMESTAMP = 1_200_690_955;
 
 # Force use of our local krb5.conf so that testing doesn't depend on the local
 # system Kerberos configuration.
 local $ENV{KRB5_CONFIG} = 't/data/krb5.conf';
 
 # Open the keytab.
-my $krb5 = Authen::Kerberos->new;
+my $krb5   = Authen::Kerberos->new;
 my $keytab = $krb5->keytab('FILE:t/data/keytabs/fake-keytab');
 isa_ok($keytab, 'Authen::Kerberos::Keytab');
 
@@ -56,7 +56,7 @@ is(scalar($keytab->entries), 4, 'Entry count in keytab');
 
 # Check the entries against the test data.
 my @entries = $keytab->entries;
-for my $i (0..$#entries) {
+for my $i (0 .. $#entries) {
     my $entry = $entries[$i];
     isa_ok($entry, 'Authen::Kerberos::KeytabEntry', "Entry $i");
     my $principal = $entry->principal;
