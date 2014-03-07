@@ -176,9 +176,8 @@ DESTROY(self)
 
 
 void
-entries(self, callback)
+entries(self)
     Authen::Kerberos::Keytab self
-    SV *callback
   PREINIT:
     krb5_context ctx;
     krb5_kt_cursor cursor;
@@ -273,12 +272,12 @@ principal(self)
 {
     CROAK_NULL_SELF(self, "Authen::Kerberos::KeytabEntry", "principal");
     ctx = krb5_context_from_sv(self->ctx, "Authen::Kerberos::KeytabEntry");
-    if (principal == NULL)
-        croak("cannot allocate memory");
     code = krb5_copy_principal(ctx, self->entry.principal, &princ);
     if (code != 0)
         krb5_croak(ctx, code, "krb5_copy_principal", FALSE);
     principal = malloc(sizeof(*principal));
+    if (principal == NULL)
+        croak("cannot allocate memory");
     principal->ctx = self->ctx;
     SvREFCNT_inc_simple_void_NN(principal->ctx);
     principal->principal = princ;
