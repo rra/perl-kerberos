@@ -81,6 +81,10 @@ In a scalar context, returns the number of entries in a keytab.  In an
 array context, returns all of the entries of the keytab as
 Authen::Kerberos::KeytabEntry objects.
 
+This function has no direct equivalent in the C API, but it is roughly
+equivalent to krb5_kt_start_seq_get() followed by multiple calls to
+krb5_kt_next_entry().
+
 =back
 
 =head1 AUTHOR

@@ -92,6 +92,8 @@ the string form of the principal name.  Special characters in any
 principal component, such as C<@> or C</>, will be escaped using the
 normal Kerberos principal string encoding.
 
+This is equivalent to the C function krb5_unparse_name().
+
 =back
 
 =head1 AUTHOR

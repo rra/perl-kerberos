@@ -117,12 +117,16 @@ of the keytab type identifiers recognized by the underlying Kerberos
 library.  The most common type is C<FILE>, in which case I<residual> is a
 path.
 
+This is equivalent to the C function krb5_kt_resolve().
+
 =item principal(NAME)
 
 Convert the given principal name to an Authen::Kerberos::Principal object.
 Normally there is no need to use this method since all Authen::Kerberos
 APIs that take principal names will accept the string form of the principal
 name and convert it internally.
+
+This is equivalent to the C function krb5_parse_name().
 
 =back
 
