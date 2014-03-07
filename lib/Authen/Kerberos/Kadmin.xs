@@ -37,7 +37,7 @@
 #include <perl.h>
 #include <XSUB.h>
 
-#include <krb5.h>
+#include <portable/krb5.h>
 #include <kadm5/admin.h>
 #include <kadm5/kadm5_err.h>
 

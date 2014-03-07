@@ -32,7 +32,7 @@
 
 #include <portable/macros.h>
 
-#include <krb5.h>               /* krb5_contxt, krb5_error_code */
+#include <portable/krb5.h>      /* krb5_contxt, krb5_error_code */
 #include <perl.h>               /* bool */
 
 /* Used to check that an object argument to a function is not NULL. */
@@ -47,6 +47,13 @@ BEGIN_DECLS
 
 /* Default to a hidden visibility for all util functions. */
 #pragma GCC visibility push(hidden)
+
+/*
+ * Given an SV that represents a Kerberos context, returns the underlying
+ * context.  Takes the type of the object making this call for error
+ * reporting.  Croaks if the SV is not valid.
+ */
+krb5_context krb5_context_from_sv(SV *, const char *type);
 
 /*
  * Given a Kerberos context, an error code, and the Kerberos function that

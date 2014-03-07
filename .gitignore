@@ -4,7 +4,9 @@
 /MYMETA.yml
 /_build/
 /blib/
+/config.log
 /cover_db
+/glue/
 /lib/Authen/Kerberos.c
 /lib/Authen/Kerberos/Kadmin.c
 *.o
