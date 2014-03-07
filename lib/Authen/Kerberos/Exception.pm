@@ -56,6 +56,24 @@ sub function { my $self = shift; return $self->{function} }
 sub message  { my $self = shift; return $self->{message} }
 sub code     { my $self = shift; return $self->{code} }
 
+# The cmp implmenetation converts the exception to a string and then compares
+# it to the other argument.
+#
+# $self  - Authen::Kerberos::Exception object
+# $other - The other object (generally a string) to which to compare it
+# $swap  - True if the order needs to be swapped for a proper comparison
+#
+# Returns: -1, 0, or 1 per the cmp interface contract
+sub spaceship {
+    my ($self, $other, $swap) = @_;
+    my $string = $self->to_string;
+    if ($swap) {
+        return ($other cmp $string);
+    } else {
+        return ($string cmp $other);
+    }
+}
+
 # A full verbose message with all the information from the exception.
 #
 # $self - Authen::Kerberos::Exception object
@@ -75,24 +93,6 @@ sub to_string {
         $result .= " at $file line $line";
     }
     return $result;
-}
-
-# The cmp implmenetation converts the exception to a string and then compares
-# it to the other argument.
-#
-# $self  - Authen::Kerberos::Exception object
-# $other - The other object (generally a string) to which to compare it
-# $swap  - True if the order needs to be swapped for a proper comparison
-#
-# Returns: -1, 0, or 1 per the cmp interface contract
-sub spaceship {
-    my ($self, $other, $swap) = @_;
-    my $string = $self->to_string;
-    if ($swap) {
-        return ($other cmp $string);
-    } else {
-        return ($string cmp $other);
-    }
 }
 
 1;
