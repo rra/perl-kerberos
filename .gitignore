@@ -9,4 +9,5 @@
 /glue/
 /lib/Authen/Kerberos.c
 /lib/Authen/Kerberos/Kadmin.c
+/t/config/keytab
 *.o

@@ -11,6 +11,9 @@
 ^lib/Authen/Kerberos/Kadmin\.c$
 \.o$
 
+# Ignore test configuration files.
+^t/config/keytab$
+
 # Avoid Module::Build generated and utility files.
 \bBuild$
 \b_build/

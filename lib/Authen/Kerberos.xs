@@ -39,6 +39,9 @@
 
 #include <util/util.h>
 
+/* Small helper macro to check if an SV is an object derived from a type. */
+#define IS_OBJ(sv, type) (sv_isobject(sv) && sv_derived_from((sv), (type)))
+
 /*
  * This typedefs are needed for xsubpp to work its magic with type translation
  * to Perl objects.  This strategy can only be used for objects that don't
@@ -57,6 +60,11 @@ typedef krb5_context Authen__Kerberos;
  */
 typedef struct {
     SV *ctx;
+    krb5_creds creds;
+} *Authen__Kerberos__Creds;
+
+typedef struct {
+    SV *ctx;
     krb5_keytab keytab;
 } *Authen__Kerberos__Keytab;
 
@@ -69,6 +77,120 @@ typedef struct {
     SV *ctx;
     krb5_principal principal;
 } *Authen__Kerberos__Principal;
+
+
+/*
+ * Given a krb5_principal, convert it to an Authen::Kerberos::Principal
+ * object.  Make a copy of the principal so that it can be stored and used
+ * independently of whatever object we generated it from.  Takes both the
+ * context and the underlying Authen::Kerberos object so that we can stash the
+ * latter in the created struct.
+ */
+static Authen__Kerberos__Principal
+wrap_principal(krb5_context ctx, SV *krb5, krb5_principal princ)
+{
+    krb5_principal copy;
+    krb5_error_code code;
+    Authen__Kerberos__Principal principal;
+
+    code = krb5_copy_principal(ctx, princ, &copy);
+    if (code != 0)
+        krb5_croak(ctx, code, "krb5_copy_principal", FALSE);
+    principal = malloc(sizeof(*principal));
+    if (principal == NULL)
+        croak("cannot allocate memory");
+    principal->ctx = krb5;
+    SvREFCNT_inc_simple_void_NN(principal->ctx);
+    principal->principal = copy;
+    return principal;
+}
+
+
+/*
+ * Helper function to convert an argument to a keytab.  Accept either an
+ * Authen::Kerberos::Keytab object or some other SV, which will be treated as
+ * a string to use as the keytab name.
+ */
+static krb5_keytab
+sv_to_keytab(SV *krb5, SV *sv)
+{
+    Authen__Kerberos__Keytab keytab;
+    krb5_keytab kt;
+    IV iv;
+
+    /*
+     * If the SV is not already an Authen::Kerberos::Keytab object, we have to
+     * create a new krb5_keytab.  Do so by calling the normal constructor and
+     * then making the resulting object mortal.  This allows us to return its
+     * contents and rely on Perl garbage collection to free it later.
+     *
+     * Temporaries will be freed by the caller's FREETMPS/LEAVE.  Stay within
+     * the caller's temporary frame.
+     */
+    if (!IS_OBJ(sv, "Authen::Kerberos::Keytab")) {
+        int count;
+        dSP;
+
+        PUSHMARK(sp);
+        XPUSHs(krb5);
+        XPUSHs(sv);
+        PUTBACK;
+        count = call_method("keytab", G_SCALAR);
+        SPAGAIN;
+        if (count != 1)
+            croak("Authen::Kerberos::keytab returned %d values", count);
+        sv = POPs;
+        PUTBACK;
+    }
+
+    /* Now extract the keytab from the object and return it. */
+    iv = SvIV((SV *) SvRV(sv));
+    keytab = INT2PTR(Authen__Kerberos__Keytab, iv);
+    return keytab->keytab;
+}
+
+
+/*
+ * The same as sv_to_keytab but for principals.  Return a krb5_principal given
+ * either an Authen::Kerberos::Principal object or a string.
+ */
+static krb5_principal
+sv_to_principal(SV *krb5, SV *sv)
+{
+    Authen__Kerberos__Principal principal;
+    krb5_principal princ;
+    IV iv;
+
+    /*
+     * If the SV is not already an Authen::Kerberos::Principal object, convert
+     * it to one using the principal method, as in sv_to_keytab above.
+     */
+    if (!IS_OBJ(sv, "Authen::Kerberos::Principal")) {
+        int count;
+        dSP;
+
+        /* Set up the stack for the Perl call. */
+        PUSHMARK(sp);
+        XPUSHs(krb5);
+        XPUSHs(sv);
+        PUTBACK;
+
+        /* Turn the scalar into a principal using the regular method. */
+        count = call_method("principal", G_SCALAR);
+
+        /* Retrieve the returned object from the stack. */
+        SPAGAIN;
+        if (count != 1)
+            croak("Authen::Kerberos::principal returned %d values", count);
+        sv = POPs;
+        PUTBACK;
+    }
+
+    /* Now extract the principal from the object and return it. */
+    iv = SvIV((SV *) SvRV(sv));
+    principal = INT2PTR(Authen__Kerberos__Principal, iv);
+    return principal->principal;
+}
 
 
 /* XS code below this point. */
@@ -105,6 +227,72 @@ DESTROY(self)
 }
 
 
+Authen::Kerberos::Creds
+authenticate(self, args)
+    Authen::Kerberos self
+    HV *args
+  PREINIT:
+    krb5_context ctx;
+    krb5_error_code code;
+    krb5_keytab kt;
+    krb5_principal princ;
+    krb5_creds creds;
+    krb5_get_init_creds_opt *opts;
+    Authen__Kerberos__Keytab keytab;
+    const char *realm, *path;
+    const char *service = NULL;
+    SV **value;
+    IV iv;
+  CODE:
+{
+    CROAK_NULL_SELF(self, "Authen::Kerberos", "authenticate");
+    if (args == NULL)
+        croak("no arguments given to Authen::Kerberos::authenticate");
+
+    /* Retrieve the principal as which to authenticate. */
+    value = hv_fetchs(args, "principal", 0);
+    if (value == NULL || !SvOK(*value))
+        croak("principal required in Authen::Kerberos::authenticate");
+    princ = sv_to_principal(ST(0), *value);
+
+    /*
+     * Retrieve the keytab.  Currently, only keytab authentication is
+     * supported.
+     */
+    value = hv_fetchs(args, "keytab", 0);
+    if (value == NULL || !SvOK(*value))
+        croak("keytab path required in Authen::Kerberos::authenticate");
+    kt = sv_to_keytab(ST(0), *value);
+
+    /* Get the target service, if specified. */
+    value = hv_fetchs(args, "service", 0);
+    if (value != NULL && SvOK(*value))
+        service = SvPV_nolen(*value);
+
+    /* Obtain credentials. */
+    code = krb5_get_init_creds_opt_alloc(ctx, &opts);
+    if (code != 0)
+        krb5_croak(self, code, "krb5_get_init_creds_opt_alloc", FALSE);
+    code = krb5_get_init_creds_keytab(self, &creds, princ, kt, 0, service,
+                                      opts);
+    krb5_get_init_creds_opt_free(ctx, opts);
+    if (code != 0)
+        krb5_croak(self, code, "krb5_get_init_creds_keytab", FALSE);
+
+    /* Allocate the return data structure. */
+    RETVAL = malloc(sizeof(*RETVAL));
+    if (RETVAL == NULL) {
+        krb5_free_cred_contents(self, &creds);
+        croak("cannot allocate memory");
+    }
+    RETVAL->creds = creds;
+    RETVAL->ctx = SvRV(ST(0));
+    SvREFCNT_inc_simple_void_NN(RETVAL->ctx);
+}
+  OUTPUT:
+    RETVAL
+
+
 Authen::Kerberos::Keytab
 keytab(self, name)
     Authen::Kerberos self
@@ -115,7 +303,7 @@ keytab(self, name)
     krb5_keytab keytab;
   CODE:
 {
-    CROAK_NULL_SELF(self, "Authen::Kerberos", "keytab_open");
+    CROAK_NULL_SELF(self, "Authen::Kerberos", "keytab");
     code = krb5_kt_resolve(self, name, &keytab);
     if (code != 0)
         krb5_croak(self, code, "krb5_kt_resolve", FALSE);
@@ -137,21 +325,75 @@ principal(self, name)
     const char *name
   PREINIT:
     krb5_error_code code;
-    krb5_principal principal;
-    Authen__Kerberos__Principal princ;
+    krb5_principal princ;
+    Authen__Kerberos__Principal principal;
   CODE:
 {
     CROAK_NULL_SELF(self, "Authen::Kerberos", "principal");
-    code = krb5_parse_name(self, name, &principal);
+    code = krb5_parse_name(self, name, &princ);
     if (code != 0)
         krb5_croak(self, code, "krb5_parse_name", FALSE);
-    princ = malloc(sizeof(*princ));
-    if (princ == NULL)
+    principal = malloc(sizeof(*principal));
+    if (principal == NULL)
         croak("cannot allocate memory");
-    princ->principal = principal;
-    princ->ctx = SvRV(ST(0));
-    SvREFCNT_inc_simple_void_NN(princ->ctx);
-    RETVAL = princ;
+    principal->principal = princ;
+    principal->ctx = SvRV(ST(0));
+    SvREFCNT_inc_simple_void_NN(principal->ctx);
+    RETVAL = principal;
+}
+  OUTPUT:
+    RETVAL
+
+
+MODULE = Authen::Kerberos       PACKAGE = Authen::Kerberos::Creds
+
+void
+DESTROY(self)
+    Authen::Kerberos::Creds self
+  PREINIT:
+    krb5_context ctx;
+  CODE:
+{
+    if (self == NULL)
+        return;
+    ctx = krb5_context_from_sv(self->ctx, "Authen::Kerberos::Creds");
+    krb5_free_cred_contents(ctx, &self->creds);
+    SvREFCNT_dec(self->ctx);
+    free(self);
+}
+
+
+Authen::Kerberos::Principal
+client(self)
+    Authen::Kerberos::Creds self
+  PREINIT:
+    krb5_context ctx;
+    krb5_principal princ;
+    krb5_error_code code;
+    Authen__Kerberos__Principal principal;
+  CODE:
+{
+    CROAK_NULL_SELF(self, "Authen::Kerberos::Creds", "client");
+    ctx = krb5_context_from_sv(self->ctx, "Authen::Kerberos::Creds");
+    RETVAL = wrap_principal(ctx, self->ctx, self->creds.client);
+}
+  OUTPUT:
+    RETVAL
+
+
+Authen::Kerberos::Principal
+server(self)
+    Authen::Kerberos::Creds self
+  PREINIT:
+    krb5_context ctx;
+    krb5_principal princ;
+    krb5_error_code code;
+    Authen__Kerberos__Principal principal;
+  CODE:
+{
+    CROAK_NULL_SELF(self, "Authen::Kerberos::Creds", "server");
+    ctx = krb5_context_from_sv(self->ctx, "Authen::Kerberos::Creds");
+    RETVAL = wrap_principal(ctx, self->ctx, self->creds.server);
 }
   OUTPUT:
     RETVAL
