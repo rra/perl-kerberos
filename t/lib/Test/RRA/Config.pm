@@ -170,7 +170,7 @@ into the local namespace to avoid long variable names.
 
 =head1 AUTHOR
 
-Russ Allbery <eagle@eyrie.org>
+Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 

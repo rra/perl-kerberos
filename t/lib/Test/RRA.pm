@@ -9,7 +9,7 @@
 # The canonical version of this file is maintained in the rra-c-util package,
 # which can be found at <http://www.eyrie.org/~eagle/software/rra-c-util/>.
 #
-# Written by Russ Allbery <eagle@eyrie.org>
+# Written by Russ Allbery <rra@cpan.org>
 # Copyright 2013
 #     The Board of Trustees of the Leland Stanford Junior University
 #
@@ -188,7 +188,7 @@ value of an array.
 
 =head1 AUTHOR
 
-Russ Allbery <eagle@eyrie.org>
+Russ Allbery <rra@cpan.org>
 
 =head1 COPYRIGHT AND LICENSE
 

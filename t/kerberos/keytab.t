@@ -2,7 +2,7 @@
 #
 # Test suite for Authen::Kerberos keytab methods.
 #
-# Written by Russ Allbery <eagle@eyrie.org>
+# Written by Russ Allbery <rra@cpan.org>
 # Copyright 2014
 #     The Board of Trustees of the Leland Stanford Junior University
 #

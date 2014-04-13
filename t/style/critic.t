@@ -7,7 +7,7 @@
 # since coding style will not interfere with functionality and newer versions
 # of perlcritic may introduce new checks.
 #
-# Written by Russ Allbery <eagle@eyrie.org>
+# Written by Russ Allbery <rra@cpan.org>
 # Copyright 2013
 #     The Board of Trustees of the Leland Stanford Junior University
 #

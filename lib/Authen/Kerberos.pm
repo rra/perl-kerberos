@@ -8,7 +8,7 @@
 # This module will eventually become a level of indirection that can select
 # from several XS modules to support both MIT Kerberos and Heimdal.
 #
-# Written by Russ Allbery <eagle@eyrie.org>
+# Written by Russ Allbery <rra@cpan.org>
 # Copyright 2014
 #     The Board of Trustees of the Leland Stanford Junior University
 #
@@ -132,7 +132,7 @@ This is equivalent to the C function krb5_parse_name().
 
 =head1 AUTHOR
 
-Russ Allbery <eagle@eyrie.org>
+Russ Allbery <rra@cpan.org>
 
 =head1 SEE ALSO
 

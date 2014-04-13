@@ -5,7 +5,7 @@
 # underlying Authen::Kerberos.  This file provides documentation and some
 # additional code that's easier to represent in Perl.
 #
-# Written by Russ Allbery <eagle@eyrie.org>
+# Written by Russ Allbery <rra@cpan.org>
 # Copyright 2014
 #     The Board of Trustees of the Leland Stanford Junior University
 #
@@ -93,7 +93,7 @@ Returns the timestamp of this keytab entry as seconds since UNIX epoch.
 
 =head1 AUTHOR
 
-Russ Allbery <eagle@eyrie.org>
+Russ Allbery <rra@cpan.org>
 
 =head1 SEE ALSO
 

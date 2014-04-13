@@ -1,6 +1,6 @@
 # Typemap file for the Perl bindings to the Kerberos library.  -*- conf -*-
 #
-# Written by Russ Allbery <eagle@eyrie.org>
+# Written by Russ Allbery <rra@cpan.org>
 # Copyright 2014
 #     The Board of Trustees of the Leland Stanford Junior University
 #

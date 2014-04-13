@@ -7,7 +7,7 @@
  * function calls can be treated as method calls on a kadmin connection
  * object.
  *
- * Written by Russ Allbery <eagle@eyrie.org>
+ * Written by Russ Allbery <rra@cpan.org>
  * Copyright 2014
  *     The Board of Trustees of the Leland Stanford Junior University
  *

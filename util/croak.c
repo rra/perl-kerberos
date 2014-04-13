@@ -5,7 +5,7 @@
  * on failure.  This is a helper function for XS code to construct such an
  * exception from an error code and additional information.
  *
- * Written by Russ Allbery <eagle@eyrie.org>
+ * Written by Russ Allbery <rra@cpan.org>
  * Copyright 2014
  *     The Board of Trustees of the Leland Stanford Junior University
  *

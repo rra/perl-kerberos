@@ -2,7 +2,7 @@
 #
 # Build script for the Authen::Kerberos distribution.
 #
-# Written by Russ Allbery <eagle@eyrie.org>
+# Written by Russ Allbery <rra@cpan.org>
 # Copyright 2014
 #     The Board of Trustees of the Leland Stanford Junior University
 #
@@ -193,7 +193,7 @@ my $linker_flags   = capturex('pkg-config', '--libs',   'heimdal-kadm-server');
 my $build = Module::Build->new(
     module_name          => 'Authen::Kerberos',
     dist_abstract        => 'Perl bindings for Kerberos libraries',
-    dist_author          => 'Russ Allbery <eagle@eyrie.org>',
+    dist_author          => 'Russ Allbery <rra@cpan.org>',
     dist_version         => '0.02',
     license              => 'mit',
     recursive_test_files => 1,

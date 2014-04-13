@@ -11,7 +11,7 @@
 # Kadmin.xs.  Any changes to the code here should be reflected there and vice
 # versa.
 #
-# Written by Russ Allbery <eagle@eyrie.org>
+# Written by Russ Allbery <rra@cpan.org>
 # Copyright 2014
 #     The Board of Trustees of the Leland Stanford Junior University
 #
@@ -168,6 +168,6 @@ exception.
 
 =head1 AUTHOR
 
-Russ Allbery <eagle@eyrie.org>
+Russ Allbery <rra@cpan.org>
 
 =cut
