@@ -65,7 +65,7 @@ isa_ok($kadmin, 'Authen::Kerberos::Kadmin');
 # Retrieve a known entry.
 my $entry = $kadmin->get('test@TEST.EXAMPLE.COM');
 isa_ok($entry, 'Authen::Kerberos::Kadmin::Entry');
-is($entry->last_password_change, 1393043331, 'Last password change time');
+is($entry->last_password_change, 1_393_043_331, 'Last password change time');
 
 # Test password change.  At the moment, we don't check whether the password
 # change is performed in the database.  We'll do that later.

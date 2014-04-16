@@ -62,5 +62,5 @@ my $creds = $krb5->authenticate($args);
 isa_ok($creds, 'Authen::Kerberos::Creds', 'Return from authenticate');
 
 # Check whether the credentials look correct.
-is($creds->client->to_string, $principal,              'Creds client');
+is($creds->client->to_string, $principal, 'Creds client');
 is($creds->server->to_string, "krbtgt/$realm\@$realm", 'Creds server');
