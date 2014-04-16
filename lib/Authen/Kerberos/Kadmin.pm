@@ -40,6 +40,7 @@ use warnings;
 
 use base qw(DynaLoader);
 
+use Authen::Kerberos;
 use Authen::Kerberos::Exception;
 use Exporter qw(import);
 

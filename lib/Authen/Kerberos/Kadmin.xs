@@ -41,14 +41,17 @@
 #include <kadm5/admin.h>
 #include <kadm5/kadm5_err.h>
 
+#include <util/util.h>
+
 /*
  * Define a struct that wraps the kadmin API handle so that we can include
  * some other data structures and configuration parameters that we need to
- * use.
+ * use.  Stores the corresponding Kerberos context as an Authen::Kerberos
+ * object.
  */
 typedef struct {
     void *handle;
-    krb5_context ctx;
+    SV *ctx;
     bool quality;
 } *Authen__Kerberos__Kadmin;
 
@@ -142,7 +145,7 @@ new(class, args)
         krb5_free_context(ctx);
         croak("cannot allocate memory");
     }
-    self->ctx = ctx;
+    self->ctx = sv_setref_pv(newSV(0), "Authen::Kerberos", ctx);
     self->handle = handle;
     self->quality = quality;
     RETVAL = self;
@@ -159,7 +162,7 @@ DESTROY(self)
     if (self == NULL)
         return;
     kadm5_destroy(self->handle);
-    krb5_free_context(self->ctx);
+    SvREFCNT_dec(self->ctx);
     free(self);
 }
 
@@ -170,15 +173,17 @@ chpass(self, principal, password)
     const char *principal
     const char *password
   PREINIT:
+    krb5_context ctx;
     krb5_error_code code;
     krb5_principal princ = NULL;
     krb5_data pwd_data;
     const char *reason;
   CODE:
 {
-    code = krb5_parse_name(self->ctx, principal, &princ);
+    ctx = krb5_context_from_sv(SvRV(self->ctx), "Authen::Kerberos::Kadmin");
+    code = krb5_parse_name(ctx, principal, &princ);
     if (code != 0)
-        krb5_croak(self->ctx, code, "krb5_parse_name", FALSE);
+        krb5_croak(ctx, code, "krb5_parse_name", FALSE);
 
     /*
      * If configured to do quality checking, we need to do that manually,
@@ -187,18 +192,18 @@ chpass(self, principal, password)
     if (self->quality) {
         pwd_data.data = (char *) password;
         pwd_data.length = strlen(password);
-        reason = kadm5_check_password_quality(self->ctx, princ, &pwd_data);
+        reason = kadm5_check_password_quality(ctx, princ, &pwd_data);
         if (reason != NULL) {
-            krb5_set_error_message(self->ctx, KADM5_PASS_Q_DICT, "%s", reason);
-            krb5_croak(self->ctx, KADM5_PASS_Q_DICT,
-                         "kadm5_check_password_quality", FALSE);
+            krb5_set_error_message(ctx, KADM5_PASS_Q_DICT, "%s", reason);
+            krb5_croak(ctx, KADM5_PASS_Q_DICT, "kadm5_check_password_quality",
+                       FALSE);
         }
     }
 
     /* Do the actual password change. */
     code = kadm5_chpass_principal(self->handle, princ, password);
-    krb5_free_principal(self->ctx, princ);
+    krb5_free_principal(ctx, princ);
     if (code != 0)
-        krb5_croak(self->ctx, code, "kadm5_chpass_principal", FALSE);
+        krb5_croak(ctx, code, "kadm5_chpass_principal", FALSE);
     XSRETURN_YES;
 }
