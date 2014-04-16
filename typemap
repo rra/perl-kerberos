@@ -30,6 +30,7 @@ krb5_timestamp                  T_IV
 Authen::Kerberos                T_PTROBJ_NU
 Authen::Kerberos::Creds         T_PTROBJ_NU
 Authen::Kerberos::Kadmin        T_PTROBJ_NU
+Authen::Kerberos::Kadmin::Entry T_PTROBJ_NU
 Authen::Kerberos::Keytab        T_PTROBJ_NU
 Authen::Kerberos::KeytabEntry   T_PTROBJ_NU
 Authen::Kerberos::Principal     T_PTROBJ_NU

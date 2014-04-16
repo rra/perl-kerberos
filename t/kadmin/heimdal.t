@@ -31,7 +31,7 @@ use warnings;
 
 use File::Copy qw(copy);
 
-use Test::More tests => 10;
+use Test::More tests => 13;
 
 BEGIN {
     use_ok('Authen::Kerberos::Kadmin');
@@ -62,11 +62,20 @@ my $kadmin = Authen::Kerberos::Kadmin->new(
 );
 isa_ok($kadmin, 'Authen::Kerberos::Kadmin');
 
+# Retrieve a known entry.
+my $entry = $kadmin->get('test@TEST.EXAMPLE.COM');
+isa_ok($entry, 'Authen::Kerberos::Kadmin::Entry');
+is($entry->last_password_change, 1393043331, 'Last password change time');
+
 # Test password change.  At the moment, we don't check whether the password
 # change is performed in the database.  We'll do that later.
 ok(eval { $kadmin->chpass('test@TEST.EXAMPLE.COM', 'some password') },
     'Password change is successful');
 is($@, q{}, '...with no exception');
+
+# Check that the last password change time was updated.
+$entry = $kadmin->get('test@TEST.EXAMPLE.COM');
+ok(time - $entry->last_password_change < 10, 'Last password change updated');
 
 # Test password change to something that should be rejected by the password
 # quality check.

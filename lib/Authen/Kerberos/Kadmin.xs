@@ -55,6 +55,37 @@ typedef struct {
     bool quality;
 } *Authen__Kerberos__Kadmin;
 
+/*
+ * Wrapper for a kadmin principal entry.  We want to store the underlying
+ * Kerberos context, used to return some Kerberos data structures from the
+ * principal, and the mask, which stores which parameters we modified.
+ */
+typedef struct {
+    void *handle;
+    SV *ctx;
+    uint32_t mask;
+    kadm5_principal_ent_t ent;
+} *Authen__Kerberos__Kadmin__Entry;
+
+
+/*
+ * Given an SV containing a kadmin handle, return the underlying handle
+ * pointer for use with direct Kerberos calls.  Takes the type of object from
+ * which the context is being retrieved for error reporting.
+ */
+static void *
+handle_from_sv(SV *handle_sv, const char *type)
+{
+    IV handle_iv;
+    void *handle;
+
+    if (handle_sv == NULL)
+        croak("no Kerberos kadmin handle in %s object", type);
+    handle_iv = SvIV(handle_sv);
+    handle = INT2PTR(void *, handle_iv);
+    return handle;
+}
+
 
 /* XS code below this point. */
 
@@ -77,6 +108,7 @@ new(class, args)
     bool quality = FALSE;
     const char *config_file;
     char **files;
+    SV *sv;
   CODE:
 {
     code = krb5_init_context(&ctx);
@@ -145,7 +177,9 @@ new(class, args)
         krb5_free_context(ctx);
         croak("cannot allocate memory");
     }
-    self->ctx = sv_setref_pv(newSV(0), "Authen::Kerberos", ctx);
+    sv = sv_setref_pv(sv_newmortal(), "Authen::Kerberos", ctx);
+    self->ctx = SvRV(sv);
+    SvREFCNT_inc_simple_void_NN(self->ctx);
     self->handle = handle;
     self->quality = quality;
     RETVAL = self;
@@ -175,12 +209,12 @@ chpass(self, principal, password)
   PREINIT:
     krb5_context ctx;
     krb5_error_code code;
-    krb5_principal princ = NULL;
+    krb5_principal princ;
     krb5_data pwd_data;
     const char *reason;
   CODE:
 {
-    ctx = krb5_context_from_sv(SvRV(self->ctx), "Authen::Kerberos::Kadmin");
+    ctx = krb5_context_from_sv(self->ctx, "Authen::Kerberos::Kadmin");
     code = krb5_parse_name(ctx, principal, &princ);
     if (code != 0)
         krb5_croak(ctx, code, "krb5_parse_name", FALSE);
@@ -194,6 +228,7 @@ chpass(self, principal, password)
         pwd_data.length = strlen(password);
         reason = kadm5_check_password_quality(ctx, princ, &pwd_data);
         if (reason != NULL) {
+            krb5_free_principal(ctx, princ);
             krb5_set_error_message(ctx, KADM5_PASS_Q_DICT, "%s", reason);
             krb5_croak(ctx, KADM5_PASS_Q_DICT, "kadm5_check_password_quality",
                        FALSE);
@@ -207,3 +242,79 @@ chpass(self, principal, password)
         krb5_croak(ctx, code, "kadm5_chpass_principal", FALSE);
     XSRETURN_YES;
 }
+
+
+Authen::Kerberos::Kadmin::Entry
+get(self, principal)
+    Authen::Kerberos::Kadmin self
+    const char *principal
+  PREINIT:
+    krb5_context ctx;
+    krb5_error_code code;
+    krb5_principal princ;
+    kadm5_principal_ent_t ent;
+    uint32_t mask;
+    Authen__Kerberos__Kadmin__Entry entry;
+  CODE:
+{
+    ctx = krb5_context_from_sv(self->ctx, "Authen::Kerberos::Kadmin");
+    ent = calloc(1, sizeof(*ent));
+    if (ent == NULL)
+        croak("cannot allocate memory");
+    code = krb5_parse_name(ctx, principal, &princ);
+    if (code != 0)
+        krb5_croak(ctx, code, "krb5_parse_name", FALSE);
+
+    /* By default, get everything except the keys. */
+    mask = KADM5_PRINCIPAL_NORMAL_MASK;
+    code = kadm5_get_principal(self->handle, princ, ent, mask);
+    krb5_free_principal(ctx, princ);
+    if (code != 0)
+        krb5_croak(ctx, code, "kadm5_get_principal", TRUE);
+
+    /* Build our internal representation. */
+    entry = calloc(1, sizeof(*entry));
+    if (entry == NULL)
+        croak("cannot allocate memory");
+    entry->handle = SvRV(ST(0));
+    SvREFCNT_inc_simple_void_NN(entry->handle);
+    entry->ctx = self->ctx;
+    SvREFCNT_inc_simple_void_NN(entry->ctx);
+    entry->ent = ent;
+    RETVAL = entry;
+}
+  OUTPUT:
+    RETVAL
+
+
+
+MODULE = Authen::Kerberos::Kadmin    PACKAGE = Authen::Kerberos::Kadmin::Entry
+
+void
+DESTROY(self)
+    Authen::Kerberos::Kadmin::Entry self
+  PREINIT:
+    void *handle;
+  CODE:
+{
+    if (self == NULL)
+        return;
+    handle = handle_from_sv(self->handle, "Authen::Kerberos::Kadmin::Entry");
+    kadm5_free_principal_ent(handle, self->ent);
+    SvREFCNT_dec(self->handle);
+    SvREFCNT_dec(self->ctx);
+    free(self);
+}
+
+
+krb5_timestamp
+last_password_change(self)
+    Authen::Kerberos::Kadmin::Entry self
+  CODE:
+{
+    CROAK_NULL_SELF(self, "Authen::Kerberos::Kadmin::Entry",
+                    "last_password_change");
+    RETVAL = self->ent->last_pwd_change;
+}
+  OUTPUT:
+    RETVAL
