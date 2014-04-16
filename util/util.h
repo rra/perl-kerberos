@@ -2,7 +2,8 @@
  * Extra utility functions for Kerberos Perl bindings.
  *
  * Prototypes for various utility functions used by multiple Kerberos XS
- * modules, collected together to avoid code duplication.
+ * modules, collected together to avoid code duplication and so that the
+ * modules can use the same internal representation for some objects.
  *
  * Written by Russ Allbery <rra@cpan.org>
  * Copyright 2014
@@ -43,6 +44,21 @@
     } while (0);
 #define CROAK_NULL_SELF(o, t, f) CROAK_NULL((o), t, t "::" f)
 
+/*
+ * Our internal representation of a krb5_principal, which both
+ * Authen::Kerberos and Authen::Kerberos::Kadmin methods need to be able to
+ * generate, interoperably.
+ *
+ * We wrap the API data structure so that we can store a reference to the
+ * Authen::Kerberos object (the Kerberos context), ensuring that the Kerberos
+ * context is not freed before the secondary object and that the same Kerberos
+ * context is used for all operations on that object.
+ */
+typedef struct {
+    SV *ctx;
+    krb5_principal principal;
+} *Authen__Kerberos__Principal;
+
 BEGIN_DECLS
 
 /* Default to a hidden visibility for all util functions. */
@@ -64,6 +80,14 @@ krb5_context krb5_context_from_sv(SV *, const char *type);
 void krb5_croak(krb5_context, krb5_error_code, const char *function,
                 bool destroy)
     __attribute__((__noreturn__));
+
+/*
+ * Given a Kerberos context, an Authen::Kerberos SV, and a krb5_principal,
+ * copy the latter and create a wrapped Authen__Kerberos__Principal object
+ * suitable for returning to let XS bless into an Authen::Kerberos::Principal.
+ */
+Authen__Kerberos__Principal krb5_wrap_principal(krb5_context, SV *,
+                                                krb5_principal);
 
 /* Undo default visibility change. */
 #pragma GCC visibility pop

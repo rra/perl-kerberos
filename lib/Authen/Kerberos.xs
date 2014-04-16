@@ -33,6 +33,8 @@
 #include <portable/krb5.h>
 #include <portable/system.h>
 
+#include <stdlib.h>
+
 #include <EXTERN.h>
 #include <perl.h>
 #include <XSUB.h>
@@ -73,38 +75,6 @@ typedef struct {
     krb5_keytab_entry entry;
 } *Authen__Kerberos__KeytabEntry;
 
-typedef struct {
-    SV *ctx;
-    krb5_principal principal;
-} *Authen__Kerberos__Principal;
-
-
-/*
- * Given a krb5_principal, convert it to an Authen::Kerberos::Principal
- * object.  Make a copy of the principal so that it can be stored and used
- * independently of whatever object we generated it from.  Takes both the
- * context and the underlying Authen::Kerberos object so that we can stash the
- * latter in the created struct.
- */
-static Authen__Kerberos__Principal
-wrap_principal(krb5_context ctx, SV *krb5, krb5_principal princ)
-{
-    krb5_principal copy;
-    krb5_error_code code;
-    Authen__Kerberos__Principal principal;
-
-    code = krb5_copy_principal(ctx, princ, &copy);
-    if (code != 0)
-        krb5_croak(ctx, code, "krb5_copy_principal", FALSE);
-    principal = malloc(sizeof(*principal));
-    if (principal == NULL)
-        croak("cannot allocate memory");
-    principal->ctx = krb5;
-    SvREFCNT_inc_simple_void_NN(principal->ctx);
-    principal->principal = copy;
-    return principal;
-}
-
 
 /*
  * Helper function to convert an argument to a keytab.  Accept either an
@@ -120,9 +90,9 @@ sv_to_keytab(SV *krb5, SV *sv)
 
     /*
      * If the SV is not already an Authen::Kerberos::Keytab object, we have to
-     * create a new krb5_keytab.  Do so by calling the normal constructor and
-     * then making the resulting object mortal.  This allows us to return its
-     * contents and rely on Perl garbage collection to free it later.
+     * create a new krb5_keytab.  Do so by calling the normal constructor.
+     * This allows us to return its contents and rely on Perl garbage
+     * collection to free it later.
      *
      * Temporaries will be freed by the caller's FREETMPS/LEAVE.  Stay within
      * the caller's temporary frame.
@@ -131,11 +101,16 @@ sv_to_keytab(SV *krb5, SV *sv)
         int count;
         dSP;
 
+        /* Set up the stack for the Perl call. */
         PUSHMARK(sp);
         XPUSHs(krb5);
         XPUSHs(sv);
         PUTBACK;
+
+        /* Turn the scalar into a keytab using the regular method. */
         count = call_method("keytab", G_SCALAR);
+
+        /* Retrieve the returned object from the stack. */
         SPAGAIN;
         if (count != 1)
             croak("Authen::Kerberos::keytab returned %d values", count);
@@ -375,7 +350,7 @@ client(self)
 {
     CROAK_NULL_SELF(self, "Authen::Kerberos::Creds", "client");
     ctx = krb5_context_from_sv(self->ctx, "Authen::Kerberos::Creds");
-    RETVAL = wrap_principal(ctx, self->ctx, self->creds.client);
+    RETVAL = krb5_wrap_principal(ctx, self->ctx, self->creds.client);
 }
   OUTPUT:
     RETVAL
@@ -393,7 +368,7 @@ server(self)
 {
     CROAK_NULL_SELF(self, "Authen::Kerberos::Creds", "server");
     ctx = krb5_context_from_sv(self->ctx, "Authen::Kerberos::Creds");
-    RETVAL = wrap_principal(ctx, self->ctx, self->creds.server);
+    RETVAL = krb5_wrap_principal(ctx, self->ctx, self->creds.server);
 }
   OUTPUT:
     RETVAL
