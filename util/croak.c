@@ -34,6 +34,8 @@
 
 #include <portable/krb5.h>
 
+#include <util/util.h>
+
 
 /*
  * Turn a Kerberos error into a Perl exception.  If the destroy argument is

@@ -33,6 +33,8 @@
 
 #include <portable/krb5.h>
 
+#include <util/util.h>
+
 
 /*
  * Given an SV containing a krb5_context, return the underlying context
