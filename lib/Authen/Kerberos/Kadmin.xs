@@ -61,7 +61,7 @@ typedef struct {
  * principal, and the mask, which stores which parameters we modified.
  */
 typedef struct {
-    void *handle;
+    SV *handle;
     SV *ctx;
     uint32_t mask;
     kadm5_principal_ent_t ent;
@@ -270,7 +270,7 @@ get(self, principal)
     code = kadm5_get_principal(self->handle, princ, ent, mask);
     krb5_free_principal(ctx, princ);
     if (code != 0)
-        krb5_croak(ctx, code, "kadm5_get_principal", TRUE);
+        krb5_croak(ctx, code, "kadm5_get_principal", FALSE);
 
     /* Build our internal representation. */
     entry = calloc(1, sizeof(*entry));
@@ -286,6 +286,26 @@ get(self, principal)
   OUTPUT:
     RETVAL
 
+
+void
+modify(self, entry)
+    Authen::Kerberos::Kadmin self
+    Authen::Kerberos::Kadmin::Entry entry
+  PREINIT:
+    void *handle;
+    krb5_context ctx;
+    krb5_error_code code;
+  CODE:
+{
+    CROAK_NULL_SELF(self, "Authen::Kerberos::Kadmin", "modify");
+    CROAK_NULL(entry, "Authen::Kerberos::Kadmin::Entry",
+               "Authen::Kerberos::Kadmin::modify");
+    ctx = krb5_context_from_sv(self->ctx, "Authen::Kerberos::Kadmin");
+    code = kadm5_modify_principal(self->handle, entry->ent, entry->mask);
+    if (code != 0)
+        krb5_croak(ctx, code, "kadm5_modify_principal", FALSE);
+    XSRETURN_YES;
+}
 
 
 MODULE = Authen::Kerberos::Kadmin    PACKAGE = Authen::Kerberos::Kadmin::Entry
@@ -321,12 +341,17 @@ last_password_change(self)
 
 
 krb5_timestamp
-password_expiration(self)
+password_expiration(self, expiration = 0)
     Authen::Kerberos::Kadmin::Entry self
+    krb5_timestamp expiration
   CODE:
 {
     CROAK_NULL_SELF(self, "Authen::Kerberos::Kadmin::Entry",
                     "password_expiration");
+    if (items > 1) {
+        self->ent->pw_expiration = expiration;
+        self->mask |= KADM5_PW_EXPIRATION;
+    }
     RETVAL = self->ent->pw_expiration;
 }
   OUTPUT:

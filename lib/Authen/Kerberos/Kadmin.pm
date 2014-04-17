@@ -181,6 +181,13 @@ on any password quality check failure.
 Retrieve the Kerberos database entry for the given principal.  The result
 will be an Authen::Kerberos::Kadmin::Entry object.
 
+=item modify(ENTRY)
+
+Given an Authen::Kerberos::Kadmin::Entry object, write any changes in that
+object back to the Kerberos KDC database.  Only those fields that have
+been modified via the Authen::Kerberos::Kadmin::Entry object methods will
+be written back, and all modified fields will be written.
+
 =back
 
 =head1 AUTHOR

@@ -31,7 +31,7 @@ use warnings;
 
 use File::Copy qw(copy);
 
-use Test::More tests => 14;
+use Test::More tests => 18;
 
 BEGIN {
     use_ok('Authen::Kerberos::Kadmin');
@@ -77,6 +77,15 @@ is($@, q{}, '...with no exception');
 # Check that the last password change time was updated.
 $entry = $kadmin->get('test@TEST.EXAMPLE.COM');
 ok(time - $entry->last_password_change < 10, 'Last password change updated');
+
+# Set the password expiration for this entry and confirm that it changed.
+my $expires = time + 10;
+is($entry->password_expiration($expires),
+    $expires, 'Setting password expiration returns the correct value');
+ok(eval { $kadmin->modify($entry) }, 'Modify password expiration');
+is($@, q{}, '...with no exception');
+$entry = $kadmin->get('test@TEST.EXAMPLE.COM');
+is($entry->password_expiration, $expires, '...and expiration changed');
 
 # Test password change to something that should be rejected by the password
 # quality check.

@@ -83,22 +83,33 @@ database.
 
 =head1 INSTANCE METHODS
 
+Many of these methods either return information from the Kerberos KDC
+database (KDB) entry or set data if an argument to the method was given.
+Any changes made this way only appear in the local object, not in the
+actual KDC database, until this object is stored back in the database using
+the modify() method of the Authen::Kerberos::Kadmin object.  That's also
+when most errors will be reported.  When this object is passed to
+modify(), everything that was updated in the object will be written to the
+KDC database at the same time.
+
 As with all Authen::Kerberos methods, an Authen::Kerberos::Exception
 object will be thrown on any Kerberos error.
 
 =over 4
 
-=item last_password_change
+=item last_password_change()
 
 Returns the last password change time for this database entry in seconds
 since UNIX epoch, or C<0> if there is no password change information
 available.
 
-=item password_expiration
+=item password_expiration([TIME])
 
 Returns the password expiration time for this database entry in seconds
 since UNIX epoch, or C<0> if this principal does not have a password
-expiration set.
+expiration set.  If the TIME argument is given, sets the password
+expiration time to TIME, which is in the same format, and returns the
+value that was set.
 
 =back
 
