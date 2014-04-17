@@ -31,7 +31,7 @@ use warnings;
 
 use File::Copy qw(copy);
 
-use Test::More tests => 18;
+use Test::More tests => 20;
 
 BEGIN {
     use_ok('Authen::Kerberos::Kadmin');
@@ -61,6 +61,23 @@ my $kadmin = Authen::Kerberos::Kadmin->new(
     }
 );
 isa_ok($kadmin, 'Authen::Kerberos::Kadmin');
+
+# Get a list of principals.
+my @principals = sort($kadmin->list(q{*}));
+my @wanted     = qw(
+  WELLKNOWN/ANONYMOUS@TEST.EXAMPLE.COM
+  WELLKNOWN/org.h5l.fast-cookie@WELLKNOWN:ORG.H5L
+  changepw/kerberos@TEST.EXAMPLE.COM
+  default@TEST.EXAMPLE.COM
+  kadmin/admin@TEST.EXAMPLE.COM
+  kadmin/changepw@TEST.EXAMPLE.COM
+  kadmin/hprop@TEST.EXAMPLE.COM
+  krbtgt/TEST.EXAMPLE.COM@TEST.EXAMPLE.COM
+  test@TEST.EXAMPLE.COM
+);
+is_deeply(\@principals, \@wanted, 'List of principals');
+is(scalar($kadmin->list(q{*})),
+    scalar(@wanted), '...and returns count in scalar context');
 
 # Retrieve a known entry.
 my $entry = $kadmin->get('test@TEST.EXAMPLE.COM');

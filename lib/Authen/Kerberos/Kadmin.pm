@@ -181,6 +181,14 @@ on any password quality check failure.
 Retrieve the Kerberos database entry for the given principal.  The result
 will be an Authen::Kerberos::Kadmin::Entry object.
 
+=item list(PATTERN)
+
+Returns the principal entries in the Kerberos database whose names match
+the provided pattern.  PATTERN is a shell glob pattern, meaning that C<*>
+and C<?> work the same way that they do in shell patterns.  The return
+value is a list of principal names in an array context, or the count of
+matching principal entries in a scalar context.
+
 =item modify(ENTRY)
 
 Given an Authen::Kerberos::Kadmin::Entry object, write any changes in that

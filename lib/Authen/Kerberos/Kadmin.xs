@@ -288,6 +288,35 @@ get(self, principal)
 
 
 void
+list(self, pattern)
+    Authen::Kerberos::Kadmin self
+    const char *pattern
+  PREINIT:
+    krb5_context ctx;
+    krb5_error_code code;
+    char **princs;
+    int count, i;
+  PPCODE:
+{
+    CROAK_NULL_SELF(self, "Authen::Kerberos::Kadmin", "list");
+    ctx = krb5_context_from_sv(self->ctx, "Authen::Kerberos::Kadmin");
+    code = kadm5_get_principals(self->handle, pattern, &princs, &count);
+    if (code != 0)
+        krb5_croak(ctx, code, "kadm5_get_principals", FALSE);
+    if (GIMME_V == G_ARRAY) {
+        EXTEND(SP, count);
+        for (i = 0; i < count; i++)
+            PUSHs(sv_2mortal(newSVpv(princs[i], 0)));
+    } else {
+        ST(0) = newSViv(count);
+        sv_2mortal(ST(0));
+        XSRETURN(1);
+    }
+    kadm5_free_name_list(self->handle, princs, &count);
+}
+
+
+void
 modify(self, entry)
     Authen::Kerberos::Kadmin self
     Authen::Kerberos::Kadmin::Entry entry
