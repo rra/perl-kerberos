@@ -31,7 +31,7 @@ use warnings;
 
 use File::Copy qw(copy);
 
-use Test::More tests => 13;
+use Test::More tests => 14;
 
 BEGIN {
     use_ok('Authen::Kerberos::Kadmin');
@@ -66,6 +66,7 @@ isa_ok($kadmin, 'Authen::Kerberos::Kadmin');
 my $entry = $kadmin->get('test@TEST.EXAMPLE.COM');
 isa_ok($entry, 'Authen::Kerberos::Kadmin::Entry');
 is($entry->last_password_change, 1_393_043_331, 'Last password change time');
+is($entry->password_expiration,  0,             'No password expiration');
 
 # Test password change.  At the moment, we don't check whether the password
 # change is performed in the database.  We'll do that later.

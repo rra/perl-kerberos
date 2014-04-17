@@ -94,6 +94,12 @@ Returns the last password change time for this database entry in seconds
 since UNIX epoch, or C<0> if there is no password change information
 available.
 
+=item password_expiration
+
+Returns the password expiration time for this database entry in seconds
+since UNIX epoch, or C<0> if this principal does not have a password
+expiration set.
+
 =back
 
 =head1 AUTHOR

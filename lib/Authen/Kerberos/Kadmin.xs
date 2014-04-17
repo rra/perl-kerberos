@@ -318,3 +318,16 @@ last_password_change(self)
 }
   OUTPUT:
     RETVAL
+
+
+krb5_timestamp
+password_expiration(self)
+    Authen::Kerberos::Kadmin::Entry self
+  CODE:
+{
+    CROAK_NULL_SELF(self, "Authen::Kerberos::Kadmin::Entry",
+                    "password_expiration");
+    RETVAL = self->ent->pw_expiration;
+}
+  OUTPUT:
+    RETVAL
