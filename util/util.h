@@ -69,7 +69,7 @@ BEGIN_DECLS
  * context.  Takes the type of the object making this call for error
  * reporting.  Croaks if the SV is not valid.
  */
-krb5_context krb5_context_from_sv(SV *, const char *type);
+krb5_context akrb_context_from_sv(SV *, const char *type);
 
 /*
  * Given a Kerberos context, an error code, and the Kerberos function that
@@ -77,7 +77,7 @@ krb5_context krb5_context_from_sv(SV *, const char *type);
  * croak.  The final boolean argument says whether to free the context before
  * calling croak.
  */
-void krb5_croak(krb5_context, krb5_error_code, const char *function,
+void akrb_croak(krb5_context, krb5_error_code, const char *function,
                 bool destroy)
     __attribute__((__noreturn__));
 
@@ -86,7 +86,7 @@ void krb5_croak(krb5_context, krb5_error_code, const char *function,
  * copy the latter and create a wrapped Authen__Kerberos__Principal object
  * suitable for returning to let XS bless into an Authen::Kerberos::Principal.
  */
-Authen__Kerberos__Principal krb5_wrap_principal(krb5_context, SV *,
+Authen__Kerberos__Principal akrb_wrap_principal(krb5_context, SV *,
                                                 krb5_principal);
 
 /* Undo default visibility change. */

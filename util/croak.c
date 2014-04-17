@@ -43,7 +43,7 @@
  * used in cases where we're croaking inside the constructor.
  */
 void
-krb5_croak(krb5_context ctx, krb5_error_code code, const char *function,
+akrb_croak(krb5_context ctx, krb5_error_code code, const char *function,
            bool destroy)
 {
     HV *hv;

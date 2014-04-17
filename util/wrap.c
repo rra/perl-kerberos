@@ -44,7 +44,7 @@
  * latter in the created struct.
  */
 Authen__Kerberos__Principal
-krb5_wrap_principal(krb5_context ctx, SV *krb5, krb5_principal princ)
+akrb_wrap_principal(krb5_context ctx, SV *krb5, krb5_principal princ)
 {
     krb5_principal copy;
     krb5_error_code code;
@@ -52,7 +52,7 @@ krb5_wrap_principal(krb5_context ctx, SV *krb5, krb5_principal princ)
 
     code = krb5_copy_principal(ctx, princ, &copy);
     if (code != 0)
-        krb5_croak(ctx, code, "krb5_copy_principal", FALSE);
+        akrb_croak(ctx, code, "krb5_copy_principal", FALSE);
     principal = malloc(sizeof(*principal));
     if (principal == NULL)
         croak("cannot allocate memory");

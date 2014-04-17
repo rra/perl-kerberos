@@ -42,7 +42,7 @@
  * which the context is being retrieved for error reporting.
  */
 krb5_context
-krb5_context_from_sv(SV *ctx_sv, const char *type)
+akrb_context_from_sv(SV *ctx_sv, const char *type)
 {
     IV ctx_iv;
     krb5_context ctx;

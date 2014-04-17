@@ -113,7 +113,7 @@ new(class, args)
 {
     code = krb5_init_context(&ctx);
     if (code != 0)
-        krb5_croak(NULL, code, "krb5_init_context", FALSE);
+        akrb_croak(NULL, code, "krb5_init_context", FALSE);
 
     /* Parse the arguments to the function, if any. */
     memset(&params, 0, sizeof(params));
@@ -128,12 +128,12 @@ new(class, args)
             config_file = SvPV_nolen(*value);
             code = krb5_prepend_config_files_default(config_file, &files);
             if (code != 0)
-                krb5_croak(ctx, code, "krb5_prepend_config_files_default",
+                akrb_croak(ctx, code, "krb5_prepend_config_files_default",
                            TRUE);
             code = krb5_set_config_files(ctx, files);
             krb5_free_config_files(files);
             if (code != 0)
-                krb5_croak(ctx, code, "krb5_set_config_files", TRUE);
+                akrb_croak(ctx, code, "krb5_set_config_files", TRUE);
         }
 
         /* Set configuration parameters used by kadm5_init. */
@@ -164,7 +164,7 @@ new(class, args)
                                         &params,  KADM5_STRUCT_VERSION,
                                         KADM5_API_VERSION_2, &handle);
     if (code != 0)
-        krb5_croak(ctx, code, "kadm5_init_with_password_ctx", TRUE);
+        akrb_croak(ctx, code, "kadm5_init_with_password_ctx", TRUE);
 
     /* Set up password quality checking if desired. */
     if (quality)
@@ -214,10 +214,10 @@ chpass(self, principal, password)
     const char *reason;
   CODE:
 {
-    ctx = krb5_context_from_sv(self->ctx, "Authen::Kerberos::Kadmin");
+    ctx = akrb_context_from_sv(self->ctx, "Authen::Kerberos::Kadmin");
     code = krb5_parse_name(ctx, principal, &princ);
     if (code != 0)
-        krb5_croak(ctx, code, "krb5_parse_name", FALSE);
+        akrb_croak(ctx, code, "krb5_parse_name", FALSE);
 
     /*
      * If configured to do quality checking, we need to do that manually,
@@ -230,7 +230,7 @@ chpass(self, principal, password)
         if (reason != NULL) {
             krb5_free_principal(ctx, princ);
             krb5_set_error_message(ctx, KADM5_PASS_Q_DICT, "%s", reason);
-            krb5_croak(ctx, KADM5_PASS_Q_DICT, "kadm5_check_password_quality",
+            akrb_croak(ctx, KADM5_PASS_Q_DICT, "kadm5_check_password_quality",
                        FALSE);
         }
     }
@@ -239,7 +239,7 @@ chpass(self, principal, password)
     code = kadm5_chpass_principal(self->handle, princ, password);
     krb5_free_principal(ctx, princ);
     if (code != 0)
-        krb5_croak(ctx, code, "kadm5_chpass_principal", FALSE);
+        akrb_croak(ctx, code, "kadm5_chpass_principal", FALSE);
     XSRETURN_YES;
 }
 
@@ -257,20 +257,20 @@ get(self, principal)
     Authen__Kerberos__Kadmin__Entry entry;
   CODE:
 {
-    ctx = krb5_context_from_sv(self->ctx, "Authen::Kerberos::Kadmin");
+    ctx = akrb_context_from_sv(self->ctx, "Authen::Kerberos::Kadmin");
     ent = calloc(1, sizeof(*ent));
     if (ent == NULL)
         croak("cannot allocate memory");
     code = krb5_parse_name(ctx, principal, &princ);
     if (code != 0)
-        krb5_croak(ctx, code, "krb5_parse_name", FALSE);
+        akrb_croak(ctx, code, "krb5_parse_name", FALSE);
 
     /* By default, get everything except the keys. */
     mask = KADM5_PRINCIPAL_NORMAL_MASK;
     code = kadm5_get_principal(self->handle, princ, ent, mask);
     krb5_free_principal(ctx, princ);
     if (code != 0)
-        krb5_croak(ctx, code, "kadm5_get_principal", FALSE);
+        akrb_croak(ctx, code, "kadm5_get_principal", FALSE);
 
     /* Build our internal representation. */
     entry = calloc(1, sizeof(*entry));
@@ -299,10 +299,10 @@ list(self, pattern)
   PPCODE:
 {
     CROAK_NULL_SELF(self, "Authen::Kerberos::Kadmin", "list");
-    ctx = krb5_context_from_sv(self->ctx, "Authen::Kerberos::Kadmin");
+    ctx = akrb_context_from_sv(self->ctx, "Authen::Kerberos::Kadmin");
     code = kadm5_get_principals(self->handle, pattern, &princs, &count);
     if (code != 0)
-        krb5_croak(ctx, code, "kadm5_get_principals", FALSE);
+        akrb_croak(ctx, code, "kadm5_get_principals", FALSE);
     if (GIMME_V == G_ARRAY) {
         EXTEND(SP, count);
         for (i = 0; i < count; i++)
@@ -329,10 +329,10 @@ modify(self, entry)
     CROAK_NULL_SELF(self, "Authen::Kerberos::Kadmin", "modify");
     CROAK_NULL(entry, "Authen::Kerberos::Kadmin::Entry",
                "Authen::Kerberos::Kadmin::modify");
-    ctx = krb5_context_from_sv(self->ctx, "Authen::Kerberos::Kadmin");
+    ctx = akrb_context_from_sv(self->ctx, "Authen::Kerberos::Kadmin");
     code = kadm5_modify_principal(self->handle, entry->ent, entry->mask);
     if (code != 0)
-        krb5_croak(ctx, code, "kadm5_modify_principal", FALSE);
+        akrb_croak(ctx, code, "kadm5_modify_principal", FALSE);
     XSRETURN_YES;
 }
 

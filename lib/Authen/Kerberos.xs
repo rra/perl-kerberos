@@ -185,7 +185,7 @@ new(class)
 {
     code = krb5_init_context(&ctx);
     if (code != 0)
-        krb5_croak(NULL, code, "krb5_init_context", FALSE);
+        akrb_croak(NULL, code, "krb5_init_context", FALSE);
     RETVAL = ctx;
 }
   OUTPUT:
@@ -247,12 +247,12 @@ authenticate(self, args)
     /* Obtain credentials. */
     code = krb5_get_init_creds_opt_alloc(ctx, &opts);
     if (code != 0)
-        krb5_croak(self, code, "krb5_get_init_creds_opt_alloc", FALSE);
+        akrb_croak(self, code, "krb5_get_init_creds_opt_alloc", FALSE);
     code = krb5_get_init_creds_keytab(self, &creds, princ, kt, 0, service,
                                       opts);
     krb5_get_init_creds_opt_free(ctx, opts);
     if (code != 0)
-        krb5_croak(self, code, "krb5_get_init_creds_keytab", FALSE);
+        akrb_croak(self, code, "krb5_get_init_creds_keytab", FALSE);
 
     /* Allocate the return data structure. */
     RETVAL = malloc(sizeof(*RETVAL));
@@ -281,7 +281,7 @@ keytab(self, name)
     CROAK_NULL_SELF(self, "Authen::Kerberos", "keytab");
     code = krb5_kt_resolve(self, name, &keytab);
     if (code != 0)
-        krb5_croak(self, code, "krb5_kt_resolve", FALSE);
+        akrb_croak(self, code, "krb5_kt_resolve", FALSE);
     kt = malloc(sizeof(*kt));
     if (kt == NULL)
         croak("cannot allocate memory");
@@ -307,7 +307,7 @@ principal(self, name)
     CROAK_NULL_SELF(self, "Authen::Kerberos", "principal");
     code = krb5_parse_name(self, name, &princ);
     if (code != 0)
-        krb5_croak(self, code, "krb5_parse_name", FALSE);
+        akrb_croak(self, code, "krb5_parse_name", FALSE);
     principal = malloc(sizeof(*principal));
     if (principal == NULL)
         croak("cannot allocate memory");
@@ -331,7 +331,7 @@ DESTROY(self)
 {
     if (self == NULL)
         return;
-    ctx = krb5_context_from_sv(self->ctx, "Authen::Kerberos::Creds");
+    ctx = akrb_context_from_sv(self->ctx, "Authen::Kerberos::Creds");
     krb5_free_cred_contents(ctx, &self->creds);
     SvREFCNT_dec(self->ctx);
     free(self);
@@ -349,8 +349,8 @@ client(self)
   CODE:
 {
     CROAK_NULL_SELF(self, "Authen::Kerberos::Creds", "client");
-    ctx = krb5_context_from_sv(self->ctx, "Authen::Kerberos::Creds");
-    RETVAL = krb5_wrap_principal(ctx, self->ctx, self->creds.client);
+    ctx = akrb_context_from_sv(self->ctx, "Authen::Kerberos::Creds");
+    RETVAL = akrb_wrap_principal(ctx, self->ctx, self->creds.client);
 }
   OUTPUT:
     RETVAL
@@ -367,8 +367,8 @@ server(self)
   CODE:
 {
     CROAK_NULL_SELF(self, "Authen::Kerberos::Creds", "server");
-    ctx = krb5_context_from_sv(self->ctx, "Authen::Kerberos::Creds");
-    RETVAL = krb5_wrap_principal(ctx, self->ctx, self->creds.server);
+    ctx = akrb_context_from_sv(self->ctx, "Authen::Kerberos::Creds");
+    RETVAL = akrb_wrap_principal(ctx, self->ctx, self->creds.server);
 }
   OUTPUT:
     RETVAL
@@ -385,7 +385,7 @@ DESTROY(self)
 {
     if (self == NULL)
         return;
-    ctx = krb5_context_from_sv(self->ctx, "Authen::Kerberos::Keytab");
+    ctx = akrb_context_from_sv(self->ctx, "Authen::Kerberos::Keytab");
     krb5_kt_close(ctx, self->keytab);
     SvREFCNT_dec(self->ctx);
     free(self);
@@ -405,12 +405,12 @@ entries(self)
   PPCODE:
 {
     CROAK_NULL_SELF(self, "Authen::Kerberos::Keytab", "entries");
-    ctx = krb5_context_from_sv(self->ctx, "Authen::Kerberos::Keytab");
+    ctx = akrb_context_from_sv(self->ctx, "Authen::Kerberos::Keytab");
 
     /* Start the cursor. */
     code = krb5_kt_start_seq_get(ctx, self->keytab, &cursor);
     if (code != 0)
-        krb5_croak(ctx, code, "krb5_kt_start_seq_get", FALSE);
+        akrb_croak(ctx, code, "krb5_kt_start_seq_get", FALSE);
 
     /* For each entry, either count it or add it to the output stack. */
     code = krb5_kt_next_entry(ctx, self->keytab, &entry, &cursor);
@@ -435,7 +435,7 @@ entries(self)
 
     /* Make sure everything was successful and close the cursor. */
     if (code != KRB5_KT_END)
-        krb5_croak(ctx, code, "krb5_kt_next_entry", FALSE);
+        akrb_croak(ctx, code, "krb5_kt_next_entry", FALSE);
     krb5_kt_end_seq_get(ctx, self->keytab, &cursor);
 
     /* If we're in a scalar context, push the count. */
@@ -458,7 +458,7 @@ DESTROY(self)
 {
     if (self == NULL)
         return;
-    ctx = krb5_context_from_sv(self->ctx, "Authen::Kerberos::KeytabEntry");
+    ctx = akrb_context_from_sv(self->ctx, "Authen::Kerberos::KeytabEntry");
     krb5_kt_free_entry(ctx, &self->entry);
     SvREFCNT_dec(self->ctx);
     free(self);
@@ -488,10 +488,10 @@ principal(self)
   CODE:
 {
     CROAK_NULL_SELF(self, "Authen::Kerberos::KeytabEntry", "principal");
-    ctx = krb5_context_from_sv(self->ctx, "Authen::Kerberos::KeytabEntry");
+    ctx = akrb_context_from_sv(self->ctx, "Authen::Kerberos::KeytabEntry");
     code = krb5_copy_principal(ctx, self->entry.principal, &princ);
     if (code != 0)
-        krb5_croak(ctx, code, "krb5_copy_principal", FALSE);
+        akrb_croak(ctx, code, "krb5_copy_principal", FALSE);
     principal = malloc(sizeof(*principal));
     if (principal == NULL)
         croak("cannot allocate memory");
@@ -527,7 +527,7 @@ DESTROY(self)
 {
     if (self == NULL)
         return;
-    ctx = krb5_context_from_sv(self->ctx, "Authen::Kerberos::Principal");
+    ctx = akrb_context_from_sv(self->ctx, "Authen::Kerberos::Principal");
     krb5_free_principal(ctx, self->principal);
     SvREFCNT_dec(self->ctx);
     free(self);
@@ -547,10 +547,10 @@ to_string(self, other = NULL, swap = 0)
   CODE:
 {
     CROAK_NULL_SELF(self, "Authen::Kerberos::Principal", "to_string");
-    ctx = krb5_context_from_sv(self->ctx, "Authen::Kerberos::Principal");
+    ctx = akrb_context_from_sv(self->ctx, "Authen::Kerberos::Principal");
     code = krb5_unparse_name(ctx, self->principal, &principal);
     if (code != 0)
-        krb5_croak(ctx, code, "krb5_unparse_name", FALSE);
+        akrb_croak(ctx, code, "krb5_unparse_name", FALSE);
     RETVAL = newSVpv(principal, 0);
     krb5_free_unparsed_name(ctx, principal);
 }
