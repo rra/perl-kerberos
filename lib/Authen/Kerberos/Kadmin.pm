@@ -176,6 +176,11 @@ If password quality checking is enabled via the C<password_quality>
 parameter to the constructor, this method will fail and throw an exception
 on any password quality check failure.
 
+=item get(PRINCIPAL)
+
+Retrieve the Kerberos database entry for the given principal.  The result
+will be an Authen::Kerberos::Kadmin::Entry object.
+
 =back
 
 =head1 AUTHOR
@@ -184,6 +189,6 @@ Russ Allbery <rra@cpan.org>
 
 =head1 SEE ALSO
 
-L<Authen::Kerberos::Exception>
+L<Authen::Kerberos::Exception>, L<Authen::Kerberos::Kadmin::Entry>
 
 =cut
