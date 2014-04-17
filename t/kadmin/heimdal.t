@@ -31,7 +31,7 @@ use warnings;
 
 use File::Copy qw(copy);
 
-use Test::More tests => 20;
+use Test::More tests => 22;
 
 BEGIN {
     use_ok('Authen::Kerberos::Kadmin');
@@ -84,6 +84,16 @@ my $entry = $kadmin->get('test@TEST.EXAMPLE.COM');
 isa_ok($entry, 'Authen::Kerberos::Kadmin::Entry');
 is($entry->last_password_change, 1_393_043_331, 'Last password change time');
 is($entry->password_expiration,  0,             'No password expiration');
+
+# Retrieve an entry with interesting attributes to check that method.
+$entry = $kadmin->get('kadmin/changepw@TEST.EXAMPLE.COM');
+my @attributes = $entry->attributes;
+@wanted = qw(
+  disallow-postdated disallow-proxiable disallow-renewable
+  disallow-tgt-based pwchange-service   requires-pre-auth
+);
+is_deeply(\@attributes, \@wanted, 'kadmin/changepw has correct attributes');
+is($entry->attributes, join(q{, }, @attributes), '...and in scalar context');
 
 # Test password change.  At the moment, we don't check whether the password
 # change is performed in the database.  We'll do that later.

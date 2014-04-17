@@ -67,6 +67,36 @@ typedef struct {
     kadm5_principal_ent_t ent;
 } *Authen__Kerberos__Kadmin__Entry;
 
+/*
+ * Mapping of principal entry attributes to text names.  The names used here
+ * are the Heimdal names, not the MIT Kerberos names (which are generally just
+ * the constant names without the leading KRB5_KDB).
+ */
+struct attribute_name {
+    int attribute;
+    const char *name;
+} attribute_names[] = {
+    { KRB5_KDB_ALLOW_DIGEST,           "allow-digest"           },
+    { KRB5_KDB_ALLOW_KERBEROS4,        "allow-kerberos4"        },
+    { KRB5_KDB_DISALLOW_ALL_TIX,       "disallow-all-tix"       },
+    { KRB5_KDB_DISALLOW_DUP_SKEY,      "disallow-dup-skey"      },
+    { KRB5_KDB_DISALLOW_FORWARDABLE,   "disallow-forwardable"   },
+    { KRB5_KDB_DISALLOW_POSTDATED,     "disallow-postdated"     },
+    { KRB5_KDB_DISALLOW_PROXIABLE,     "disallow-proxiable"     },
+    { KRB5_KDB_DISALLOW_RENEWABLE,     "disallow-renewable"     },
+    { KRB5_KDB_DISALLOW_SVR,           "disallow-svr"           },
+    { KRB5_KDB_DISALLOW_TGT_BASED,     "disallow-tgt-based"     },
+    { KRB5_KDB_NEW_PRINC,              "new-princ"              },
+    { KRB5_KDB_OK_AS_DELEGATE,         "ok-as-delegate"         },
+    { KRB5_KDB_PWCHANGE_SERVICE,       "pwchange-service"       },
+    { KRB5_KDB_REQUIRES_HW_AUTH,       "requires-hw-auth"       },
+    { KRB5_KDB_REQUIRES_PRE_AUTH,      "requires-pre-auth"      },
+    { KRB5_KDB_REQUIRES_PWCHANGE,      "requires-pw-change"     },
+    { KRB5_KDB_SUPPORT_DESMD5,         "support-desmd5"         },
+    { KRB5_KDB_TRUSTED_FOR_DELEGATION, "trusted-for-delegation" },
+    { 0, NULL }
+};
+
 
 /*
  * Given an SV containing a kadmin handle, return the underlying handle
@@ -353,6 +383,44 @@ DESTROY(self)
     SvREFCNT_dec(self->handle);
     SvREFCNT_dec(self->ctx);
     free(self);
+}
+
+
+void
+attributes(self)
+    Authen::Kerberos::Kadmin::Entry self
+  PREINIT:
+    SV *result = NULL;
+    size_t i;
+  PPCODE:
+{
+    CROAK_NULL_SELF(self, "Authen::Kerberos::Kadmin::Entry", "attributes");
+
+    /*
+     * Walk the possible flags, see if each one is set, and append the
+     * relevant attribute to the return value if so.
+     */
+    for (i = 0; attribute_names[i].attribute != 0; i++) {
+        if (!(self->ent->attributes & attribute_names[i].attribute))
+            continue;
+        if (GIMME_V == G_ARRAY)
+            mXPUSHs(newSVpv(attribute_names[i].name, 0));
+        else {
+            if (result == NULL)
+                result = newSVpv(attribute_names[i].name, 0);
+            else {
+                sv_catpvs(result, ", ");
+                sv_catpv(result, attribute_names[i].name);
+            }
+        }
+    }
+
+    /* Finish up the stack manipulation for the scalar case. */
+    if (GIMME_V != G_ARRAY) {
+        ST(0) = result;
+        sv_2mortal(ST(0));
+        XSRETURN(1);
+    }
 }
 
 
