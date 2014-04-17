@@ -62,7 +62,7 @@ bootstrap Authen::Kerberos $VERSION;
 __END__
 
 =for stopwords
-Allbery Heimdal keytabs libkrb5
+Allbery Heimdal keytabs libkrb5 TGT TGT-based keytab
 
 =head1 NAME
 
@@ -108,6 +108,33 @@ All class methods throw Authen::Kerberos::Exception objects on any
 Kerberos error.
 
 =over 4
+
+=item authenticate(ARGS)
+
+Obtain initial credentials.  Currently, only authentication using keys
+stored in a keytab is supported.  ARGS should be a reference to a hash
+containing one or more of the following arguments:
+
+=over 4
+
+=item keytab
+
+The keytab containing the keys for the principal.
+
+=item principal
+
+The principal as which to authenticate.  This can be either the string
+representation of a principal or an Authen::Kerberos::Principal object.
+
+=item service
+
+The service for which to obtain session tickets.  If not given,
+authenticate() defaults to obtaining a ticket-granting ticket (TGT), which
+can be used to obtain other service tickets.  Normally this parameter is
+only necessary if the service to which one is authenticating is set to
+disallow TGT-based authentication (such as the password change service).
+
+=back
 
 =item keytab(KEYTAB)
 
