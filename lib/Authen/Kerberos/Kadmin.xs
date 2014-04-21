@@ -72,8 +72,8 @@ typedef struct {
  * are the Heimdal names, not the MIT Kerberos names (which are generally just
  * the constant names without the leading KRB5_KDB).
  */
-struct attribute_name {
-    int attribute;
+struct {
+    unsigned long attribute;
     const char *name;
 } attribute_names[] = {
     { KRB5_KDB_ALLOW_DIGEST,           "allow-digest"           },
@@ -114,6 +114,22 @@ handle_from_sv(SV *handle_sv, const char *type)
     handle_iv = SvIV(handle_sv);
     handle = INT2PTR(void *, handle_iv);
     return handle;
+}
+
+
+/*
+ * Given an attribute name, return the corresponding attribute code, or 0 if
+ * that attribute name is not recognized.
+ */
+static unsigned long
+attribute_name_to_code(const char *name)
+{
+    size_t i;
+
+    for (i = 0; attribute_names[i].attribute != 0; i++)
+        if (strcmp(name, attribute_names[i].name) == 0)
+            return attribute_names[i].attribute;
+    return 0;
 }
 
 
@@ -421,6 +437,28 @@ attributes(self)
         sv_2mortal(ST(0));
         XSRETURN(1);
     }
+}
+
+
+void
+has_attribute(self, attribute)
+    Authen::Kerberos::Kadmin::Entry self
+    const char *attribute
+  PREINIT:
+    unsigned long code;
+  PPCODE:
+{
+    CROAK_NULL_SELF(self, "Authen::Kerberos::Kadmin::Entry", "has_attribute");
+    if (attribute == NULL || attribute[0] == '\0')
+        croak("attribute is undefined or empty in"
+              " Authen::Kerberos::Kadmin::Entry::has_attribute");
+    code = attribute_name_to_code(attribute);
+    if (code == 0)
+        croak("unknown Kerberos entry attribute %s", attribute);
+    if (self->ent->attributes & code)
+        XSRETURN_YES;
+    else
+        XSRETURN_UNDEF;
 }
 
 

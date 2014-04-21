@@ -31,7 +31,7 @@ use warnings;
 
 use File::Copy qw(copy);
 
-use Test::More tests => 22;
+use Test::More tests => 28;
 
 BEGIN {
     use_ok('Authen::Kerberos::Kadmin');
@@ -94,6 +94,21 @@ my @attributes = $entry->attributes;
 );
 is_deeply(\@attributes, \@wanted, 'kadmin/changepw has correct attributes');
 is($entry->attributes, join(q{, }, @attributes), '...and in scalar context');
+
+# Check has_attribute for known attributes.
+is($entry->has_attribute('disallow-postdated'), 1, 'Has disallow-postdated');
+is($entry->has_attribute('disallow-all-tix'),
+    undef, 'Does not have disallow-all-tix');
+
+# Check behavior for invalid has_attribute calls.
+ok(!eval { $entry->has_attribute(q{}) }, 'has_attribute("") fails');
+like($@, qr{ \A attribute [ ] is [ ] undefined }xms, '...with correct error');
+ok(!eval { $entry->has_attribute('foo') }, 'has_attribute("foo") fails');
+like(
+    $@,
+    qr{ \A unknown [ ] Kerberos [ ] entry [ ] attribute [ ] foo }xms,
+    '...with correct error'
+);
 
 # Test password change.  At the moment, we don't check whether the password
 # change is performed in the database.  We'll do that later.

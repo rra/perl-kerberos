@@ -210,6 +210,12 @@ Not used, but included for completeness since the flags are defined.
 
 =back
 
+=item has_attribute(ATTRIBUTE)
+
+Returns true if this database entry has that attribute set, false
+otherwise.  ATTRIBUTE should be a string chosen from the list of valid
+attributes as documented under the attributes() method.
+
 =item last_password_change()
 
 Returns the last password change time for this database entry in seconds
@@ -220,9 +226,10 @@ available.
 
 Returns the password expiration time for this database entry in seconds
 since UNIX epoch, or C<0> if this principal does not have a password
-expiration set.  If the TIME argument is given, sets the password
-expiration time to TIME, which is in the same format, and returns the
-value that was set.
+expiration set.
+
+If the TIME argument is given, sets the password expiration time to TIME,
+which is in the same format, and returns the value that was set.
 
 =back
 
