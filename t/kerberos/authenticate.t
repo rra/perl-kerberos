@@ -1,7 +1,6 @@
 #!/usr/bin/perl
 #
-# Trivial Heimdal quality check program used for testing that quality checking
-# happens.  Accept any password other than "password".
+# Test suite for Authen::Kerberos initial authentication.
 #
 # Written by Russ Allbery <rra@cpan.org>
 # Copyright 2014
@@ -26,21 +25,42 @@
 # IN THE SOFTWARE.
 
 use 5.010;
+use autodie;
 use strict;
 use warnings;
 
-# No, really, we have to use standard input.
-## no critic (InputOutput::ProhibitExplicitStdin)
+use Test::More;
 
-# Check whether the password is "password".
-while (defined(my $line = <STDIN>)) {
-    if ($line =~ m{ \A new-password: [ ] password \n \z }xms) {
-        warn "weak password\n";
-        exit(0);
-    }
+# We can only run this test if we have a local keytab.
+if (!-f 't/config/keytab') {
+    plan skip_all => 'Authentication tests not configured';
 }
 
-# Everything looks good.
-print {*STDOUT} "APPROVED\n"
-  or die "Cannot write to standard output: $!\n";
-exit(0);
+# We can proceed.  Output the plan.
+plan tests => 5;
+
+# Load the relevant modules.
+require_ok('Authen::Kerberos');
+require_ok('Authen::Kerberos::Keytab');
+
+# Open the keytab.
+my $krb5   = Authen::Kerberos->new;
+my $keytab = $krb5->keytab('FILE:t/config/keytab');
+
+# Get the principal of the first entry.
+my ($entry) = $keytab->entries;
+my $principal = $entry->principal->to_string;
+
+# Authenticate and request the krbtgt in the realm of the principal.
+my ($realm) = ($principal =~ m{ \@ (.*) \z }xms);
+my $args = {
+    principal => $principal,
+    keytab    => $keytab,
+    service   => "krbtgt/$realm\@$realm",
+};
+my $creds = $krb5->authenticate($args);
+isa_ok($creds, 'Authen::Kerberos::Creds', 'Return from authenticate');
+
+# Check whether the credentials look correct.
+is($creds->client->to_string, $principal, 'Creds client');
+is($creds->server->to_string, "krbtgt/$realm\@$realm", 'Creds server');

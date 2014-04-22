@@ -1,6 +1,6 @@
-# Typemap file for the Perl bindings to the Kerberos library.
+# Typemap file for the Perl bindings to the Kerberos library.  -*- conf -*-
 #
-# Written by Russ Allbery <eagle@eyrie.org>
+# Written by Russ Allbery <rra@cpan.org>
 # Copyright 2014
 #     The Board of Trustees of the Leland Stanford Junior University
 #
@@ -24,7 +24,16 @@
 
 TYPEMAP
 
+krb5_kvno                       T_IV
+krb5_timestamp                  T_IV
+
+Authen::Kerberos                T_PTROBJ_NU
+Authen::Kerberos::Creds         T_PTROBJ_NU
 Authen::Kerberos::Kadmin        T_PTROBJ_NU
+Authen::Kerberos::Kadmin::Entry T_PTROBJ_NU
+Authen::Kerberos::Keytab        T_PTROBJ_NU
+Authen::Kerberos::KeytabEntry   T_PTROBJ_NU
+Authen::Kerberos::Principal     T_PTROBJ_NU
 
 INPUT
 

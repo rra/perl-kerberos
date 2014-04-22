@@ -7,7 +7,7 @@
  * function calls can be treated as method calls on a kadmin connection
  * object.
  *
- * Written by Russ Allbery <eagle@eyrie.org>
+ * Written by Russ Allbery <rra@cpan.org>
  * Copyright 2014
  *     The Board of Trustees of the Leland Stanford Junior University
  *
@@ -37,60 +37,99 @@
 #include <perl.h>
 #include <XSUB.h>
 
-#include <krb5.h>
+#include <portable/krb5.h>
 #include <kadm5/admin.h>
 #include <kadm5/kadm5_err.h>
+
+#include <util/util.h>
 
 /*
  * Define a struct that wraps the kadmin API handle so that we can include
  * some other data structures and configuration parameters that we need to
- * use.
+ * use.  Stores the corresponding Kerberos context as an Authen::Kerberos
+ * object.
  */
 typedef struct {
     void *handle;
-    krb5_context ctx;
+    SV *ctx;
     bool quality;
 } *Authen__Kerberos__Kadmin;
 
-/* Used to check that an object argument to a function is not NULL. */
-#define CROAK_NULL(o, t, f)                     \
-    do {                                        \
-        if ((o) == NULL)                        \
-            croak(t " object is undef in " f);  \
-    } while (0);
-#define CROAK_NULL_SELF(o, t, f) CROAK_NULL((o), t, t "::" f)
+/*
+ * Wrapper for a kadmin principal entry.  We want to store the underlying
+ * Kerberos context, used to return some Kerberos data structures from the
+ * principal, and the mask, which stores which parameters we modified.
+ */
+typedef struct {
+    SV *handle;
+    SV *ctx;
+    uint32_t mask;
+    kadm5_principal_ent_t ent;
+} *Authen__Kerberos__Kadmin__Entry;
+
+/*
+ * Mapping of principal entry attributes to text names.  The names used here
+ * are the Heimdal names, not the MIT Kerberos names (which are generally just
+ * the constant names without the leading KRB5_KDB).
+ */
+struct {
+    unsigned long attribute;
+    const char *name;
+} attribute_names[] = {
+    { KRB5_KDB_ALLOW_DIGEST,           "allow-digest"           },
+    { KRB5_KDB_ALLOW_KERBEROS4,        "allow-kerberos4"        },
+    { KRB5_KDB_DISALLOW_ALL_TIX,       "disallow-all-tix"       },
+    { KRB5_KDB_DISALLOW_DUP_SKEY,      "disallow-dup-skey"      },
+    { KRB5_KDB_DISALLOW_FORWARDABLE,   "disallow-forwardable"   },
+    { KRB5_KDB_DISALLOW_POSTDATED,     "disallow-postdated"     },
+    { KRB5_KDB_DISALLOW_PROXIABLE,     "disallow-proxiable"     },
+    { KRB5_KDB_DISALLOW_RENEWABLE,     "disallow-renewable"     },
+    { KRB5_KDB_DISALLOW_SVR,           "disallow-svr"           },
+    { KRB5_KDB_DISALLOW_TGT_BASED,     "disallow-tgt-based"     },
+    { KRB5_KDB_NEW_PRINC,              "new-princ"              },
+    { KRB5_KDB_OK_AS_DELEGATE,         "ok-as-delegate"         },
+    { KRB5_KDB_PWCHANGE_SERVICE,       "pwchange-service"       },
+    { KRB5_KDB_REQUIRES_HW_AUTH,       "requires-hw-auth"       },
+    { KRB5_KDB_REQUIRES_PRE_AUTH,      "requires-pre-auth"      },
+    { KRB5_KDB_REQUIRES_PWCHANGE,      "requires-pw-change"     },
+    { KRB5_KDB_SUPPORT_DESMD5,         "support-desmd5"         },
+    { KRB5_KDB_TRUSTED_FOR_DELEGATION, "trusted-for-delegation" },
+    { 0, NULL }
+};
 
 
 /*
- * Turn a Kerberos error into a Perl exception.  If the destroy argument is
- * true, free the Kerberos context after setting up the exception.  This is
- * used in cases where we're croaking inside the constructor.
+ * Given an SV containing a kadmin handle, return the underlying handle
+ * pointer for use with direct Kerberos calls.  Takes the type of object from
+ * which the context is being retrieved for error reporting.
  */
-static void __attribute__((__noreturn__))
-kadmin_croak(krb5_context ctx, krb5_error_code code, const char *function,
-             bool destroy)
+static void *
+handle_from_sv(SV *handle_sv, const char *type)
 {
-    HV *hv;
-    SV *rv;
-    const char *message;
+    IV handle_iv;
+    void *handle;
 
-    hv = newHV();
-    (void) hv_stores(hv, "code", newSViv(code));
-    message = krb5_get_error_message(ctx, code);
-    (void) hv_stores(hv, "message", newSVpv(message, 0));
-    krb5_free_error_message(ctx, message);
-    if (destroy)
-        krb5_free_context(ctx);
-    if (function != NULL)
-        (void) hv_stores(hv, "function", newSVpv(function, 0));
-    if (CopLINE(PL_curcop)) {
-        (void) hv_stores(hv, "line", newSViv(CopLINE(PL_curcop)));
-        (void) hv_stores(hv, "file", newSVpv(CopFILE(PL_curcop), 0));
-    }
-    rv = newRV_noinc((SV *) hv);
-    sv_bless(rv, gv_stashpv("Authen::Kerberos::Exception", TRUE));
-    sv_setsv(get_sv("@", TRUE), sv_2mortal(rv));
-    croak(Nullch);
+    if (handle_sv == NULL)
+        croak("no Kerberos kadmin handle in %s object", type);
+    handle_iv = SvIV(handle_sv);
+    handle = INT2PTR(void *, handle_iv);
+    return handle;
+}
+
+
+/*
+ * Given an attribute name, return the corresponding attribute code, or 0 if
+ * that attribute name is not recognized.
+ */
+static unsigned long
+attribute_name_to_code(const char *name)
+{
+    size_t i;
+
+    for (i = 0; attribute_names[i].attribute != 0; i++)
+        if (strcmp(name, attribute_names[i].name) == 0)
+            return attribute_names[i].attribute;
+    return 0;
 }
 
 
@@ -115,11 +154,12 @@ new(class, args)
     bool quality = FALSE;
     const char *config_file;
     char **files;
+    SV *sv;
   CODE:
 {
     code = krb5_init_context(&ctx);
     if (code != 0)
-        kadmin_croak(NULL, code, "krb5_init_context", FALSE);
+        akrb_croak(NULL, code, "krb5_init_context", FALSE);
 
     /* Parse the arguments to the function, if any. */
     memset(&params, 0, sizeof(params));
@@ -134,12 +174,12 @@ new(class, args)
             config_file = SvPV_nolen(*value);
             code = krb5_prepend_config_files_default(config_file, &files);
             if (code != 0)
-                kadmin_croak(ctx, code, "krb5_prepend_config_files_default",
-                             TRUE);
+                akrb_croak(ctx, code, "krb5_prepend_config_files_default",
+                           TRUE);
             code = krb5_set_config_files(ctx, files);
             krb5_free_config_files(files);
             if (code != 0)
-                kadmin_croak(ctx, code, "krb5_set_config_files", TRUE);
+                akrb_croak(ctx, code, "krb5_set_config_files", TRUE);
         }
 
         /* Set configuration parameters used by kadm5_init. */
@@ -170,7 +210,7 @@ new(class, args)
                                         &params,  KADM5_STRUCT_VERSION,
                                         KADM5_API_VERSION_2, &handle);
     if (code != 0)
-        kadmin_croak(ctx, code, "kadm5_init_with_password_ctx", TRUE);
+        akrb_croak(ctx, code, "kadm5_init_with_password_ctx", TRUE);
 
     /* Set up password quality checking if desired. */
     if (quality)
@@ -183,7 +223,9 @@ new(class, args)
         krb5_free_context(ctx);
         croak("cannot allocate memory");
     }
-    self->ctx = ctx;
+    sv = sv_setref_pv(sv_newmortal(), "Authen::Kerberos", ctx);
+    self->ctx = SvRV(sv);
+    SvREFCNT_inc_simple_void_NN(self->ctx);
     self->handle = handle;
     self->quality = quality;
     RETVAL = self;
@@ -200,7 +242,7 @@ DESTROY(self)
     if (self == NULL)
         return;
     kadm5_destroy(self->handle);
-    krb5_free_context(self->ctx);
+    SvREFCNT_dec(self->ctx);
     free(self);
 }
 
@@ -211,15 +253,17 @@ chpass(self, principal, password)
     const char *principal
     const char *password
   PREINIT:
+    krb5_context ctx;
     krb5_error_code code;
-    krb5_principal princ = NULL;
+    krb5_principal princ;
     krb5_data pwd_data;
     const char *reason;
   CODE:
 {
-    code = krb5_parse_name(self->ctx, principal, &princ);
+    ctx = akrb_context_from_sv(self->ctx, "Authen::Kerberos::Kadmin");
+    code = krb5_parse_name(ctx, principal, &princ);
     if (code != 0)
-        kadmin_croak(self->ctx, code, "krb5_parse_name", FALSE);
+        akrb_croak(ctx, code, "krb5_parse_name", FALSE);
 
     /*
      * If configured to do quality checking, we need to do that manually,
@@ -228,18 +272,222 @@ chpass(self, principal, password)
     if (self->quality) {
         pwd_data.data = (char *) password;
         pwd_data.length = strlen(password);
-        reason = kadm5_check_password_quality(self->ctx, princ, &pwd_data);
+        reason = kadm5_check_password_quality(ctx, princ, &pwd_data);
         if (reason != NULL) {
-            krb5_set_error_message(self->ctx, KADM5_PASS_Q_DICT, "%s", reason);
-            kadmin_croak(self->ctx, KADM5_PASS_Q_DICT,
-                         "kadm5_check_password_quality", FALSE);
+            krb5_free_principal(ctx, princ);
+            krb5_set_error_message(ctx, KADM5_PASS_Q_DICT, "%s", reason);
+            akrb_croak(ctx, KADM5_PASS_Q_DICT, "kadm5_check_password_quality",
+                       FALSE);
         }
     }
 
     /* Do the actual password change. */
     code = kadm5_chpass_principal(self->handle, princ, password);
-    krb5_free_principal(self->ctx, princ);
+    krb5_free_principal(ctx, princ);
     if (code != 0)
-        kadmin_croak(self->ctx, code, "kadm5_chpass_principal", FALSE);
+        akrb_croak(ctx, code, "kadm5_chpass_principal", FALSE);
     XSRETURN_YES;
 }
+
+
+Authen::Kerberos::Kadmin::Entry
+get(self, principal)
+    Authen::Kerberos::Kadmin self
+    const char *principal
+  PREINIT:
+    krb5_context ctx;
+    krb5_error_code code;
+    krb5_principal princ;
+    kadm5_principal_ent_t ent;
+    uint32_t mask;
+    Authen__Kerberos__Kadmin__Entry entry;
+  CODE:
+{
+    ctx = akrb_context_from_sv(self->ctx, "Authen::Kerberos::Kadmin");
+    ent = calloc(1, sizeof(*ent));
+    if (ent == NULL)
+        croak("cannot allocate memory");
+    code = krb5_parse_name(ctx, principal, &princ);
+    if (code != 0)
+        akrb_croak(ctx, code, "krb5_parse_name", FALSE);
+
+    /* By default, get everything except the keys. */
+    mask = KADM5_PRINCIPAL_NORMAL_MASK;
+    code = kadm5_get_principal(self->handle, princ, ent, mask);
+    krb5_free_principal(ctx, princ);
+    if (code != 0)
+        akrb_croak(ctx, code, "kadm5_get_principal", FALSE);
+
+    /* Build our internal representation. */
+    entry = calloc(1, sizeof(*entry));
+    if (entry == NULL)
+        croak("cannot allocate memory");
+    entry->handle = SvRV(ST(0));
+    SvREFCNT_inc_simple_void_NN(entry->handle);
+    entry->ctx = self->ctx;
+    SvREFCNT_inc_simple_void_NN(entry->ctx);
+    entry->ent = ent;
+    RETVAL = entry;
+}
+  OUTPUT:
+    RETVAL
+
+
+void
+list(self, pattern)
+    Authen::Kerberos::Kadmin self
+    const char *pattern
+  PREINIT:
+    krb5_context ctx;
+    krb5_error_code code;
+    char **princs;
+    int count, i;
+  PPCODE:
+{
+    CROAK_NULL_SELF(self, "Authen::Kerberos::Kadmin", "list");
+    ctx = akrb_context_from_sv(self->ctx, "Authen::Kerberos::Kadmin");
+    code = kadm5_get_principals(self->handle, pattern, &princs, &count);
+    if (code != 0)
+        akrb_croak(ctx, code, "kadm5_get_principals", FALSE);
+    if (GIMME_V == G_ARRAY) {
+        EXTEND(SP, count);
+        for (i = 0; i < count; i++)
+            PUSHs(sv_2mortal(newSVpv(princs[i], 0)));
+    } else {
+        ST(0) = newSViv(count);
+        sv_2mortal(ST(0));
+        XSRETURN(1);
+    }
+    kadm5_free_name_list(self->handle, princs, &count);
+}
+
+
+void
+modify(self, entry)
+    Authen::Kerberos::Kadmin self
+    Authen::Kerberos::Kadmin::Entry entry
+  PREINIT:
+    void *handle;
+    krb5_context ctx;
+    krb5_error_code code;
+  CODE:
+{
+    CROAK_NULL_SELF(self, "Authen::Kerberos::Kadmin", "modify");
+    CROAK_NULL(entry, "Authen::Kerberos::Kadmin::Entry",
+               "Authen::Kerberos::Kadmin::modify");
+    ctx = akrb_context_from_sv(self->ctx, "Authen::Kerberos::Kadmin");
+    code = kadm5_modify_principal(self->handle, entry->ent, entry->mask);
+    if (code != 0)
+        akrb_croak(ctx, code, "kadm5_modify_principal", FALSE);
+    XSRETURN_YES;
+}
+
+
+MODULE = Authen::Kerberos::Kadmin    PACKAGE = Authen::Kerberos::Kadmin::Entry
+
+void
+DESTROY(self)
+    Authen::Kerberos::Kadmin::Entry self
+  PREINIT:
+    void *handle;
+  CODE:
+{
+    if (self == NULL)
+        return;
+    handle = handle_from_sv(self->handle, "Authen::Kerberos::Kadmin::Entry");
+    kadm5_free_principal_ent(handle, self->ent);
+    SvREFCNT_dec(self->handle);
+    SvREFCNT_dec(self->ctx);
+    free(self);
+}
+
+
+void
+attributes(self)
+    Authen::Kerberos::Kadmin::Entry self
+  PREINIT:
+    SV *result = NULL;
+    size_t i;
+  PPCODE:
+{
+    CROAK_NULL_SELF(self, "Authen::Kerberos::Kadmin::Entry", "attributes");
+
+    /*
+     * Walk the possible flags, see if each one is set, and append the
+     * relevant attribute to the return value if so.
+     */
+    for (i = 0; attribute_names[i].attribute != 0; i++) {
+        if (!(self->ent->attributes & attribute_names[i].attribute))
+            continue;
+        if (GIMME_V == G_ARRAY)
+            mXPUSHs(newSVpv(attribute_names[i].name, 0));
+        else {
+            if (result == NULL)
+                result = newSVpv(attribute_names[i].name, 0);
+            else {
+                sv_catpvs(result, ", ");
+                sv_catpv(result, attribute_names[i].name);
+            }
+        }
+    }
+
+    /* Finish up the stack manipulation for the scalar case. */
+    if (GIMME_V != G_ARRAY) {
+        ST(0) = result;
+        sv_2mortal(ST(0));
+        XSRETURN(1);
+    }
+}
+
+
+void
+has_attribute(self, attribute)
+    Authen::Kerberos::Kadmin::Entry self
+    const char *attribute
+  PREINIT:
+    unsigned long code;
+  PPCODE:
+{
+    CROAK_NULL_SELF(self, "Authen::Kerberos::Kadmin::Entry", "has_attribute");
+    if (attribute == NULL || attribute[0] == '\0')
+        croak("attribute is undefined or empty in"
+              " Authen::Kerberos::Kadmin::Entry::has_attribute");
+    code = attribute_name_to_code(attribute);
+    if (code == 0)
+        croak("unknown Kerberos entry attribute %s", attribute);
+    if (self->ent->attributes & code)
+        XSRETURN_YES;
+    else
+        XSRETURN_UNDEF;
+}
+
+
+krb5_timestamp
+last_password_change(self)
+    Authen::Kerberos::Kadmin::Entry self
+  CODE:
+{
+    CROAK_NULL_SELF(self, "Authen::Kerberos::Kadmin::Entry",
+                    "last_password_change");
+    RETVAL = self->ent->last_pwd_change;
+}
+  OUTPUT:
+    RETVAL
+
+
+krb5_timestamp
+password_expiration(self, expiration = 0)
+    Authen::Kerberos::Kadmin::Entry self
+    krb5_timestamp expiration
+  CODE:
+{
+    CROAK_NULL_SELF(self, "Authen::Kerberos::Kadmin::Entry",
+                    "password_expiration");
+    if (items > 1) {
+        self->ent->pw_expiration = expiration;
+        self->mask |= KADM5_PW_EXPIRATION;
+    }
+    RETVAL = self->ent->pw_expiration;
+}
+  OUTPUT:
+    RETVAL

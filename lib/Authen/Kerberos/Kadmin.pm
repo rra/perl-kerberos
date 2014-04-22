@@ -10,7 +10,7 @@
 # select from several XS modules to support both MIT Kerberos and Heimdal, and
 # both the libkadm5clnt and libkadm5srv libraries.
 #
-# Written by Russ Allbery <eagle@eyrie.org>
+# Written by Russ Allbery <rra@cpan.org>
 # Copyright 2014
 #     The Board of Trustees of the Leland Stanford Junior University
 #
@@ -40,6 +40,7 @@ use warnings;
 
 use base qw(DynaLoader);
 
+use Authen::Kerberos;
 use Authen::Kerberos::Exception;
 use Exporter qw(import);
 
@@ -47,7 +48,7 @@ our $VERSION;
 
 # Set $VERSION in a BEGIN block for robustness.
 BEGIN {
-    $VERSION = '0.02';
+    $VERSION = '0.03';
 }
 
 # Load the binary module.
@@ -175,16 +176,34 @@ If password quality checking is enabled via the C<password_quality>
 parameter to the constructor, this method will fail and throw an exception
 on any password quality check failure.
 
-=back
+=item get(PRINCIPAL)
 
-=cut
+Retrieve the Kerberos database entry for the given principal.  The result
+will be an Authen::Kerberos::Kadmin::Entry object.
+
+=item list(PATTERN)
+
+Returns the principal entries in the Kerberos database whose names match
+the provided pattern.  PATTERN is a shell glob pattern, meaning that C<*>
+and C<?> work the same way that they do in shell patterns.  The return
+value is a list of principal names in an array context, or the count of
+matching principal entries in a scalar context.
+
+=item modify(ENTRY)
+
+Given an Authen::Kerberos::Kadmin::Entry object, write any changes in that
+object back to the Kerberos KDC database.  Only those fields that have
+been modified via the Authen::Kerberos::Kadmin::Entry object methods will
+be written back, and all modified fields will be written.
+
+=back
 
 =head1 AUTHOR
 
-Russ Allbery <eagle@eyrie.org>
+Russ Allbery <rra@cpan.org>
 
 =head1 SEE ALSO
 
-L<Authen::Kerberos::Exception>
+L<Authen::Kerberos::Exception>, L<Authen::Kerberos::Kadmin::Entry>
 
 =cut
