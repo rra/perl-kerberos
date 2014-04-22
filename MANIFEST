@@ -1,10 +1,12 @@
 .gitignore
 Build.PL
+examples/password-change-report
 lib/Authen/Kerberos.pm
 lib/Authen/Kerberos.xs
 lib/Authen/Kerberos/Exception.pm
 lib/Authen/Kerberos/Kadmin.pm
 lib/Authen/Kerberos/Kadmin.xs
+lib/Authen/Kerberos/Kadmin/Entry.pm
 lib/Authen/Kerberos/Keytab.pm
 lib/Authen/Kerberos/KeytabEntry.pm
 lib/Authen/Kerberos/Principal.pm
@@ -45,3 +47,4 @@ typemap
 util/context.c
 util/croak.c
 util/util.h
+util/wrap.c
