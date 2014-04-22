@@ -1,1 +1,2 @@
 0001-Avoid-pkg-config-for-XS-flags.patch
+0002-Avoid-using-an-undefined-value-in-check_funcs.patch
