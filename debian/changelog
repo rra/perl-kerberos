@@ -1,3 +1,18 @@
+libauthen-kerberos-perl (0.03-1) unstable; urgency=medium
+
+  * New internal release.
+    - Add initial Authen::Kerberos module that wraps just enough of the
+      regular Kerberos API to list the contents of a keytab and to obtain
+      credentials from a keytab.
+    - Add get, list, and modify Authen::Kerberos::Kadmin methods.
+    - Add a representation of Kerberos database entries and methods to
+      inspect the attributes, last password change time, and password
+      expiration time and to change the latter.
+    - Add an example script to list principals without a recent password
+      change.
+
+ -- Russ Allbery <rra@debian.org>  Tue, 22 Apr 2014 16:32:39 -0700
+
 libauthen-kerberos-perl (0.02-1) unstable; urgency=medium
 
   * New internal release.

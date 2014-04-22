@@ -13,5 +13,6 @@ Architecture: any
 Depends: ${perl:Depends}, ${shlibs:Depends}, ${misc:Depends}
 Description: Perl bindings for Kerberos libraries
  Authen::Kerberos will eventually provide object-oriented Perl bindings
- for the Kerberos libraries.  Currently, it only provides bindings for the
- Heimdal kadmin library and only supports server-side password change.
+ for the Kerberos libraries.  Currently, it only provides useful bindings
+ for the Heimdal kadmin library and only supports server-side password
+ change and some limited viewing of Kerberos database entries.
