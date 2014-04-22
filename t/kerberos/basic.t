@@ -1,7 +1,6 @@
 #!/usr/bin/perl
 #
-# Trivial Heimdal quality check program used for testing that quality checking
-# happens.  Accept any password other than "password".
+# Test suite for Authen::Kerberos basic functionality.
 #
 # Written by Russ Allbery <rra@cpan.org>
 # Copyright 2014
@@ -26,21 +25,25 @@
 # IN THE SOFTWARE.
 
 use 5.010;
+use autodie;
 use strict;
 use warnings;
 
-# No, really, we have to use standard input.
-## no critic (InputOutput::ProhibitExplicitStdin)
+use Test::More tests => 4;
 
-# Check whether the password is "password".
-while (defined(my $line = <STDIN>)) {
-    if ($line =~ m{ \A new-password: [ ] password \n \z }xms) {
-        warn "weak password\n";
-        exit(0);
-    }
+BEGIN {
+    use_ok('Authen::Kerberos');
 }
 
-# Everything looks good.
-print {*STDOUT} "APPROVED\n"
-  or die "Cannot write to standard output: $!\n";
-exit(0);
+# Force use of our local krb5.conf so that testing doesn't depend on the local
+# system Kerberos configuration.
+local $ENV{KRB5_CONFIG} = 't/data/krb5.conf';
+
+# Test creation of a Kerberos context (Authen::Kerberos object).
+my $krb5 = Authen::Kerberos->new;
+isa_ok($krb5, 'Authen::Kerberos');
+
+# Create a principal (Authen::Kerberos::Principal object).
+my $principal = $krb5->principal('test@EXAMPLE.COM');
+isa_ok($principal, 'Authen::Kerberos::Principal');
+is("$principal", 'test@EXAMPLE.COM', 'Principal is correct');

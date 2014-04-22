@@ -2,7 +2,7 @@
 #
 # Test suite for Authen::Kerberos::Kadmin basic functionality.
 #
-# Written by Russ Allbery <eagle@eyrie.org>
+# Written by Russ Allbery <rra@cpan.org>
 # Copyright 2014
 #     The Board of Trustees of the Leland Stanford Junior University
 #
@@ -31,7 +31,7 @@ use warnings;
 
 use File::Copy qw(copy);
 
-use Test::More tests => 10;
+use Test::More tests => 28;
 
 BEGIN {
     use_ok('Authen::Kerberos::Kadmin');
@@ -62,11 +62,72 @@ my $kadmin = Authen::Kerberos::Kadmin->new(
 );
 isa_ok($kadmin, 'Authen::Kerberos::Kadmin');
 
+# Get a list of principals.
+my @principals = sort($kadmin->list(q{*}));
+my @wanted     = qw(
+  WELLKNOWN/ANONYMOUS@TEST.EXAMPLE.COM
+  WELLKNOWN/org.h5l.fast-cookie@WELLKNOWN:ORG.H5L
+  changepw/kerberos@TEST.EXAMPLE.COM
+  default@TEST.EXAMPLE.COM
+  kadmin/admin@TEST.EXAMPLE.COM
+  kadmin/changepw@TEST.EXAMPLE.COM
+  kadmin/hprop@TEST.EXAMPLE.COM
+  krbtgt/TEST.EXAMPLE.COM@TEST.EXAMPLE.COM
+  test@TEST.EXAMPLE.COM
+);
+is_deeply(\@principals, \@wanted, 'List of principals');
+is(scalar($kadmin->list(q{*})),
+    scalar(@wanted), '...and returns count in scalar context');
+
+# Retrieve a known entry.
+my $entry = $kadmin->get('test@TEST.EXAMPLE.COM');
+isa_ok($entry, 'Authen::Kerberos::Kadmin::Entry');
+is($entry->last_password_change, 1_393_043_331, 'Last password change time');
+is($entry->password_expiration,  0,             'No password expiration');
+
+# Retrieve an entry with interesting attributes to check that method.
+$entry = $kadmin->get('kadmin/changepw@TEST.EXAMPLE.COM');
+my @attributes = $entry->attributes;
+@wanted = qw(
+  disallow-postdated disallow-proxiable disallow-renewable
+  disallow-tgt-based pwchange-service   requires-pre-auth
+);
+is_deeply(\@attributes, \@wanted, 'kadmin/changepw has correct attributes');
+is($entry->attributes, join(q{, }, @attributes), '...and in scalar context');
+
+# Check has_attribute for known attributes.
+is($entry->has_attribute('disallow-postdated'), 1, 'Has disallow-postdated');
+is($entry->has_attribute('disallow-all-tix'),
+    undef, 'Does not have disallow-all-tix');
+
+# Check behavior for invalid has_attribute calls.
+ok(!eval { $entry->has_attribute(q{}) }, 'has_attribute("") fails');
+like($@, qr{ \A attribute [ ] is [ ] undefined }xms, '...with correct error');
+ok(!eval { $entry->has_attribute('foo') }, 'has_attribute("foo") fails');
+like(
+    $@,
+    qr{ \A unknown [ ] Kerberos [ ] entry [ ] attribute [ ] foo }xms,
+    '...with correct error'
+);
+
 # Test password change.  At the moment, we don't check whether the password
 # change is performed in the database.  We'll do that later.
 ok(eval { $kadmin->chpass('test@TEST.EXAMPLE.COM', 'some password') },
     'Password change is successful');
 is($@, q{}, '...with no exception');
+
+# Check that the last password change time was updated.
+$entry = $kadmin->get('test@TEST.EXAMPLE.COM');
+ok(time - $entry->last_password_change < 10, 'Last password change updated');
+
+# Set the password expiration for this entry and confirm that it changed.
+my $expires = time + 10;
+is($entry->password_expiration($expires),
+    $expires, 'Setting password expiration returns the correct value');
+ok(eval { $kadmin->modify($entry) }, 'Modify password expiration');
+is($@, q{}, '...with no exception');
+$entry = $kadmin->get('test@TEST.EXAMPLE.COM');
+is($entry->password_expiration, $expires, '...and expiration changed');
 
 # Test password change to something that should be rejected by the password
 # quality check.

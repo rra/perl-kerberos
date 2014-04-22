@@ -1,7 +1,7 @@
 {
    "abstract" : "Perl bindings for Kerberos libraries",
    "author" : [
-      "Russ Allbery <eagle@eyrie.org>"
+      "Russ Allbery <rra@cpan.org>"
    ],
    "dynamic_config" : 1,
    "generated_by" : "Module::Build version 0.4205",
@@ -21,8 +21,9 @@
       },
       "configure" : {
          "requires" : {
+            "Config::AutoConf" : "0",
             "IPC::System::Simple" : "0",
-            "Module::Build" : "0.28",
+            "Module::Build" : "0.3604",
             "autodie" : "0",
             "perl" : "5.010"
          }
@@ -35,13 +36,33 @@
       }
    },
    "provides" : {
+      "Authen::Kerberos" : {
+         "file" : "lib/Authen/Kerberos.pm",
+         "version" : "0.03"
+      },
       "Authen::Kerberos::Exception" : {
          "file" : "lib/Authen/Kerberos/Exception.pm",
-         "version" : "0.02"
+         "version" : "0.03"
       },
       "Authen::Kerberos::Kadmin" : {
          "file" : "lib/Authen/Kerberos/Kadmin.pm",
-         "version" : "0.02"
+         "version" : "0.03"
+      },
+      "Authen::Kerberos::Kadmin::Entry" : {
+         "file" : "lib/Authen/Kerberos/Kadmin/Entry.pm",
+         "version" : "0.03"
+      },
+      "Authen::Kerberos::Keytab" : {
+         "file" : "lib/Authen/Kerberos/Keytab.pm",
+         "version" : "0.03"
+      },
+      "Authen::Kerberos::KeytabEntry" : {
+         "file" : "lib/Authen/Kerberos/KeytabEntry.pm",
+         "version" : "0.03"
+      },
+      "Authen::Kerberos::Principal" : {
+         "file" : "lib/Authen/Kerberos/Principal.pm",
+         "version" : "0.03"
       }
    },
    "release_status" : "stable",
@@ -50,5 +71,5 @@
          "http://www.opensource.org/licenses/mit-license.php"
       ]
    },
-   "version" : "0.02"
+   "version" : "0.03"
 }

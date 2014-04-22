@@ -1,0 +1,7 @@
+The keytab files in this directory were created via the kadmin ktadd
+command using an MIT Kerberos implementation and a test Kerberos realm
+named test-k5.stanford.edu.
+
+If recreated, the contents will be different, since different random keys
+will be chosen and the timestamps will be newer.  This will require
+changes to the test cases to check for different data.

@@ -11,7 +11,7 @@
 # Kadmin.xs.  Any changes to the code here should be reflected there and vice
 # versa.
 #
-# Written by Russ Allbery <eagle@eyrie.org>
+# Written by Russ Allbery <rra@cpan.org>
 # Copyright 2014
 #     The Board of Trustees of the Leland Stanford Junior University
 #
@@ -45,7 +45,7 @@ our $VERSION;
 
 # Set $VERSION in a BEGIN block for robustness.
 BEGIN {
-    $VERSION = '0.02';
+    $VERSION = '0.03';
 }
 
 # There is intentionally no constructor.  This object is thrown by the
@@ -55,6 +55,24 @@ BEGIN {
 sub function { my $self = shift; return $self->{function} }
 sub message  { my $self = shift; return $self->{message} }
 sub code     { my $self = shift; return $self->{code} }
+
+# The cmp implmenetation converts the exception to a string and then compares
+# it to the other argument.
+#
+# $self  - Authen::Kerberos::Exception object
+# $other - The other object (generally a string) to which to compare it
+# $swap  - True if the order needs to be swapped for a proper comparison
+#
+# Returns: -1, 0, or 1 per the cmp interface contract
+sub spaceship {
+    my ($self, $other, $swap) = @_;
+    my $string = $self->to_string;
+    if ($swap) {
+        return ($other cmp $string);
+    } else {
+        return ($string cmp $other);
+    }
+}
 
 # A full verbose message with all the information from the exception.
 #
@@ -75,24 +93,6 @@ sub to_string {
         $result .= " at $file line $line";
     }
     return $result;
-}
-
-# The cmp implmenetation converts the exception to a string and then compares
-# it to the other argument.
-#
-# $self  - Authen::Kerberos::Exception object
-# $other - The other object (generally a string) to which to compare it
-# $swap  - True if the order needs to be swapped for a proper comparison
-#
-# Returns: -1, 0, or 1 per the cmp interface contract
-sub spaceship {
-    my ($self, $other, $swap) = @_;
-    my $string = $self->to_string;
-    if ($swap) {
-        return ($other cmp $string);
-    } else {
-        return ($string cmp $other);
-    }
 }
 
 1;
@@ -168,6 +168,6 @@ exception.
 
 =head1 AUTHOR
 
-Russ Allbery <eagle@eyrie.org>
+Russ Allbery <rra@cpan.org>
 
 =cut
