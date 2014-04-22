@@ -115,7 +115,10 @@ sub check_funcs {
     my $return = 1;
     for my $function (@{$functions_ref}) {
         my $found_ref    = sub { $func_found_ref->($function) };
-        my $notfound_ref = sub { $user_notfound_ref->($function) };
+        my $notfound_ref;
+        if (defined($user_notfound_ref)) {
+            $notfound_ref = sub { $user_notfound_ref->($function) };
+        }
         $return &= check_func($self, $function, $found_ref, $notfound_ref);
     }
     return $return;
