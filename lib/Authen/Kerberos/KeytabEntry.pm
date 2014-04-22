@@ -39,7 +39,7 @@ our $VERSION;
 
 # Set $VERSION in a BEGIN block for robustness.
 BEGIN {
-    $VERSION = '0.02';
+    $VERSION = '0.03';
 }
 
 1;
