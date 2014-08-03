@@ -209,6 +209,16 @@ my $build = Module::Build->new(
     extra_linker_flags   => [split(q{ }, $linker_flags)],
     #>>>
 
+    # Add additional package metadata.
+    meta_merge => {
+        resources => {
+            repository =>
+              'ssh://git.eyrie.org/srv/git/kerberos/perl-kerberos.git',
+            bugtracker =>
+'https://rt.cpan.org/Public/Dist/Display.html?Name=Authen-Kerberos',
+        },
+    },
+
     # Other package relationships.
     configure_requires => {
         'Config::AutoConf'    => 0,
