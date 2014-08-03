@@ -1,0 +1,6 @@
+                  User-Visible Authen::Kerberos Changes
+
+Authen::Kerberos 1.00 (unreleased)
+
+    Initial version, only supporting Heimdal and with a very limited
+    subset of the Kerberos and kadmin APIs.
