@@ -1,5 +1,15 @@
                        Authen::Kerberos To-Do List
 
+ * Implement enough of the Kerberos API to support the kstart test suite
+   without needing to run external programs.
+
+ * Name the modules according to whether they were built with MIT or
+   Heimdal and provide wrapper modules that loads the appropriate
+   underling binary module.  Then, support co-installation of the MIT and
+   Heimdal versions and selection at runtime.
+
+ * Add support for the rest of the kadmin API.
+
  * Figure out a good way of exposing the Kerberos error codes.  After this
    has been done, document the error codes in chpass exceptions that
    correspond to password quality checking failures.
