@@ -3,6 +3,7 @@
 # Build script for the Authen::Kerberos distribution.
 #
 # Written by Russ Allbery <rra@cpan.org>
+# Copyright 2017 Russ Allbery <rra@cpan.org>
 # Copyright 2014
 #     The Board of Trustees of the Leland Stanford Junior University
 #
@@ -35,94 +36,6 @@ use File::Path qw(remove_tree);
 use File::Spec;
 use IPC::System::Simple qw(capturex);
 use Module::Build;
-
-# Check whether it's possible to link a program that uses a particular
-# function.  This is written like a Config::AutoConf method and should ideally
-# be incorporated into that module.  This macro caches its result in the
-# ac_cv_func_FUNCTION variable.
-#
-# $self         - The Config::AutoConf state object
-# $function     - The function to check for
-# $found_ref    - Code reference to call if the function was found
-# $notfound_ref - Code reference to call if the function wasn't found
-#
-# Returns: True if the function was found, false otherwise
-sub check_func {
-    my ($self, $function, $found_ref, $notfound_ref) = @_;
-    $self = $self->_get_instance();
-
-    # Build the name of the cache variable.
-    my $cache_name = $self->_cache_name('func', $function);
-
-    # Wrap the actual check in a closure so that we can use check_cached.
-    my $check_sub = sub {
-        my $have_func = $self->link_if_else($self->lang_call(q{}, $function));
-        if ($have_func) {
-            if (defined($found_ref) && ref($found_ref) eq 'CODE') {
-                $found_ref->();
-            }
-        } else {
-            if (defined($notfound_ref) && ref($notfound_ref) eq 'CODE') {
-                $notfound_ref->();
-            }
-        }
-        return $have_func;
-    };
-
-    # Run the check and cache the results.
-    return $self->check_cached($cache_name, "for $function", $check_sub);
-}
-
-# The same as check_func, but takes a list of functions to look for and checks
-# for each in turn.  Define HAVE_FUNCTION for each function that was found,
-# and also run the $found_ref code each time a function was found.  Run the
-# $notfound_ref code each time a function wasn't found.  Both code references
-# are passed the name of the function that was found.
-#
-# $self          - The Config::AutoConf state object
-# $functions_ref - Reference to an array of functions to check for
-# $found_ref     - Code reference to call if a function was found
-# $notfound_ref  - Code reference to call if a function wasn't found
-#
-# Returns: True if all functions were found, false otherwise.
-sub check_funcs {
-    my ($self, $functions_ref, $user_found_ref, $user_notfound_ref) = @_;
-    $self = $self->_get_instance();
-
-    # Build the code reference to run when a function was found.  This defines
-    # a HAVE_FUNCTION symbol, plus runs the current $found_ref if there is
-    # one.
-    my $func_found_ref = sub {
-        my ($function) = @_;
-
-        # Generate the name of the symbol we'll define.
-        my $have_func_name = 'HAVE_' . uc($function);
-        $have_func_name =~ tr/_A-Za-z0-9/_/c;
-
-        # Define the symbol.
-        $self->define_var($have_func_name, 1,
-            "Defined when $function is available");
-
-        # Run the user-provided hook, if there is one.
-        if (defined($user_found_ref) && ref($user_found_ref) eq 'CODE') {
-            $user_found_ref->($function);
-        }
-    };
-
-    # Go through the list of functions and call check_func for each one.  We
-    # generate new closures for the found and not-found functions that pass in
-    # the relevant function name.
-    my $return = 1;
-    for my $function (@{$functions_ref}) {
-        my $found_ref    = sub { $func_found_ref->($function) };
-        my $notfound_ref;
-        if (defined($user_notfound_ref)) {
-            $notfound_ref = sub { $user_notfound_ref->($function) };
-        }
-        $return &= check_func($self, $function, $found_ref, $notfound_ref);
-    }
-    return $return;
-}
 
 # Returns C code that includes the given headers.  Used to construct prologues
 # for check functions.
@@ -180,7 +93,7 @@ sub config_kerberos {
     }
 
     # Check for functions that are different between Heimdal and MIT.
-    check_funcs($config, ['krb5_xfree']);
+    $config->check_funcs(['krb5_xfree']);
     my $includes = include($header) . $config->_default_includes;
     if ($config->check_decl('krb5_kt_free_entry', { prologue => $includes })) {
         $config->define_var('HAVE_DECL_KRB5_KT_FREE_ENTRY',
@@ -231,7 +144,7 @@ my $build = Module::Build->new(
 
     # Other package relationships.
     configure_requires => {
-        'Config::AutoConf'    => 0,
+        'Config::AutoConf'    => '0.307',
         'IPC::System::Simple' => 0,
         'Module::Build'       => '0.3604',
         autodie               => 0,
