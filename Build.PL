@@ -162,6 +162,11 @@ sub config_kerberos {
     $config->check_type('ssize_t', undef, undef, include('sys/types.h'));
 
     # If the user passed extra flags into Build.PL, use them for probes.
+    if ($build->extra_compiler_flags) {
+        my $flags = $build->extra_compiler_flags;
+        my @flags = ref($flags) ? @{$flags} : ($flags);
+        $config->push_compiler_flags(@flags);
+    }
     if ($build->extra_linker_flags) {
         my $flags = $build->extra_linker_flags;
         my @flags = ref($flags) ? @{$flags} : ($flags);
@@ -177,7 +182,7 @@ sub config_kerberos {
     # Check for functions that are different between Heimdal and MIT.
     check_funcs($config, ['krb5_xfree']);
     my $includes = include($header) . $config->_default_includes;
-    if ($config->check_decl('krb5_kt_free_entry', undef, undef, $includes)) {
+    if ($config->check_decl('krb5_kt_free_entry', { prologue => $includes })) {
         $config->define_var('HAVE_DECL_KRB5_KT_FREE_ENTRY',
             1, 'Defined when krb5_kt_free_entry is declared');
     }
@@ -189,8 +194,13 @@ sub config_kerberos {
 
 # Get the compiler and linker flags for Heimdal.  Currently, a new enough
 # Heimdal to support pkg-config is required.
-my $compiler_flags = capturex('pkg-config', '--cflags', 'heimdal-kadm-server');
-my $linker_flags   = capturex('pkg-config', '--libs',   'heimdal-kadm-server');
+my ($compiler_flags, $linker_flags);
+for my $package ('heimdal-krb5', 'heimdal-kadm-server') {
+    $compiler_flags .= q{ } . capturex('pkg-config', '--cflags', $package);
+    $linker_flags   .= q{ } . capturex('pkg-config', '--libs',   $package);
+}
+$compiler_flags =~ s{ ^ \s+ }{}xms;
+$linker_flags =~ s{ ^ \s+ }{}xms;
 
 # Basic package configuration.
 my $build = Module::Build->new(
